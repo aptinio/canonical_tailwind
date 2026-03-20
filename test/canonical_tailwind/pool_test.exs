@@ -107,6 +107,7 @@ defmodule CanonicalTailwind.PoolTest do
 
   defp teardown_pool do
     for i <- 0..15 do
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
       name = Module.concat(CanonicalTailwind.Canonicalizer, "#{i}")
       if pid = GenServer.whereis(name), do: GenServer.stop(pid)
     end

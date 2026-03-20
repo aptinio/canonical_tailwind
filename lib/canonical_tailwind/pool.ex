@@ -65,6 +65,7 @@ defmodule CanonicalTailwind.Pool do
   end
 
   defp server_name(index) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
   end
 

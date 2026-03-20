@@ -4,7 +4,7 @@ defmodule CanonicalTailwind.Canonicalizer do
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
   @warm_up_classes "p-0 m-0 flex text-red-500 bg-white border rounded font-bold w-0 h-0"
 
-  @impl true
+  @impl GenServer
   def init(opts) do
     port = open_port(opts)
     Port.command(port, [@warm_up_classes, ?\n])
@@ -12,19 +12,19 @@ defmodule CanonicalTailwind.Canonicalizer do
     {:ok, %{port: port}}
   end
 
-  @impl true
+  @impl GenServer
   def handle_call({:canonicalize, class_string}, _from, %{port: port} = state) do
     Port.command(port, [class_string, ?\n])
     result = receive_line(port)
     {:reply, result, state}
   end
 
-  @impl true
+  @impl GenServer
   def handle_info({port, {:data, _}}, %{port: port} = state) do
     {:noreply, state}
   end
 
-  @impl true
+  @impl GenServer
   def terminate(_reason, %{port: port}) do
     if Port.info(port), do: Port.close(port)
   end
