@@ -30,6 +30,7 @@ defmodule CanonicalTailwind.MixProject do
 
   defp package do
     [
+      description: "Canonicalizes Tailwind CSS utility classes in HEEx templates",
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/aptinio/canonical_tailwind"}
     ]
