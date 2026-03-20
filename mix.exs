@@ -46,7 +46,7 @@ defmodule CanonicalTailwind.MixProject do
 
   defp deps do
     [
-      {:tailwind, "~> 0.4.1", optional: true},
+      {:tailwind, "~> 0.3", optional: true},
       {:ex_doc, "~> 0.35", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:quokka, "~> 2.12", only: [:dev, :test], runtime: false}
