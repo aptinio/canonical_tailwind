@@ -168,6 +168,8 @@ defmodule CanonicalTailwind.Canonicalizer do
     end
   end
 
+  @receive_timeout 10_000
+
   defp receive_line(port) do
     receive_line(port, [])
   end
@@ -181,6 +183,9 @@ defmodule CanonicalTailwind.Canonicalizer do
 
       {^port, {:data, {:noeol, data}}} ->
         receive_line(port, [data | acc])
+    after
+      @receive_timeout ->
+        raise "tailwindcss CLI did not respond within #{@receive_timeout}ms"
     end
   end
 end
