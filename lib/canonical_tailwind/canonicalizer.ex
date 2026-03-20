@@ -4,11 +4,13 @@ defmodule CanonicalTailwind.Canonicalizer do
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
   @warm_up_classes "p-0 m-0 flex text-red-500 bg-white border rounded font-bold w-0 h-0"
 
+  @init_timeout 30_000
+
   @impl GenServer
   def init(opts) do
     port = open_port(opts)
     Port.command(port, [@warm_up_classes, ?\n])
-    receive_line(port)
+    receive_line(port, [], @init_timeout)
     {:ok, %{port: port}}
   end
 
@@ -171,10 +173,10 @@ defmodule CanonicalTailwind.Canonicalizer do
   @receive_timeout 10_000
 
   defp receive_line(port) do
-    receive_line(port, [])
+    receive_line(port, [], @receive_timeout)
   end
 
-  defp receive_line(port, acc) do
+  defp receive_line(port, acc, timeout) do
     receive do
       {^port, {:data, {:eol, data}}} ->
         [data | acc]
@@ -182,10 +184,10 @@ defmodule CanonicalTailwind.Canonicalizer do
         |> IO.iodata_to_binary()
 
       {^port, {:data, {:noeol, data}}} ->
-        receive_line(port, [data | acc])
+        receive_line(port, [data | acc], timeout)
     after
-      @receive_timeout ->
-        raise "tailwindcss CLI did not respond within #{@receive_timeout}ms"
+      timeout ->
+        raise "tailwindcss CLI did not respond within #{timeout}ms"
     end
   end
 end
