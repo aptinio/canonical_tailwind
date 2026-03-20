@@ -10,7 +10,8 @@ defmodule CanonicalTailwind.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      test_coverage: [summary: [threshold: 85]]
+      test_coverage: [summary: [threshold: 85]],
+      package: package()
     ]
   end
 
@@ -26,6 +27,13 @@ defmodule CanonicalTailwind.MixProject do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/aptinio/canonical_tailwind"}
+    ]
+  end
 
   defp deps do
     [
