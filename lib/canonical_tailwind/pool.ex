@@ -22,15 +22,18 @@ defmodule CanonicalTailwind.Pool do
 
     results =
       0..(pool_size - 1)
-      |> Task.async_stream(fn i ->
-        name = server_name(i)
+      |> Task.async_stream(
+        fn i ->
+          name = server_name(i)
 
-        case GenServer.start(CanonicalTailwind.Canonicalizer, opts, name: name) do
-          {:ok, _pid} -> :ok
-          {:error, {:already_started, _pid}} -> :ok
-          {:error, {error, _stacktrace}} -> {:error, error}
-        end
-      end)
+          case GenServer.start(CanonicalTailwind.Canonicalizer, opts, name: name) do
+            {:ok, _pid} -> :ok
+            {:error, {:already_started, _pid}} -> :ok
+            {:error, {error, _stacktrace}} -> {:error, error}
+          end
+        end,
+        timeout: :infinity
+      )
       |> Enum.to_list()
 
     case Enum.find_value(results, fn
