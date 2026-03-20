@@ -11,7 +11,8 @@ defmodule CanonicalTailwind.MixProject do
       deps: deps(),
       aliases: aliases(),
       test_coverage: [summary: [threshold: 85]],
-      package: package()
+      package: package(),
+      docs: docs()
     ]
   end
 
@@ -28,6 +29,13 @@ defmodule CanonicalTailwind.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"]
+    ]
+  end
+
   defp package do
     [
       description: "Canonicalizes Tailwind CSS utility classes in HEEx templates",
@@ -39,6 +47,7 @@ defmodule CanonicalTailwind.MixProject do
   defp deps do
     [
       {:tailwind, "~> 0.4.1", optional: true},
+      {:ex_doc, "~> 0.35", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:quokka, "~> 2.12", only: [:dev, :test], runtime: false}
     ]
