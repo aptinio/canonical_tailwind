@@ -106,10 +106,10 @@ defmodule CanonicalTailwind do
   end
 
   defp canonicalize(class_string, opts) do
-    if String.split(class_string) == [] do
+    if String.trim(class_string) == "" do
       class_string
     else
-      CanonicalTailwind.Port.canonicalize(class_string, opts)
+      CanonicalTailwind.Pool.canonicalize(class_string, opts)
     end
   end
 end

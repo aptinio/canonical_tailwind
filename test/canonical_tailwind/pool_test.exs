@@ -1,10 +1,13 @@
-defmodule CanonicalTailwind.PortTest do
+defmodule CanonicalTailwind.PoolTest do
   use ExUnit.Case, async: true, group: :tailwind_env
 
   setup do
+    teardown_pool()
     original = Application.get_all_env(:tailwind)
 
     on_exit(fn ->
+      teardown_pool()
+
       for {key, _} <- Application.get_all_env(:tailwind),
           do: Application.delete_env(:tailwind, key)
 
@@ -12,15 +15,15 @@ defmodule CanonicalTailwind.PortTest do
     end)
   end
 
-  test "canonicalizes via the default profile and caches the port" do
+  test "canonicalizes via the default profile and reuses the pool" do
     assert canonicalize("py-3 p-1 flex px-3 [display:_flex_]") == "flex p-3"
     assert canonicalize("") == ""
 
-    port = Process.get({CanonicalTailwind.Port, :port})
-    assert is_port(port)
+    pid = GenServer.whereis(:"Elixir.CanonicalTailwind.Canonicalizer.0")
+    assert is_pid(pid)
 
     canonicalize("p-0")
-    assert Process.get({CanonicalTailwind.Port, :port}) == port
+    assert GenServer.whereis(:"Elixir.CanonicalTailwind.Canonicalizer.0") == pid
   end
 
   test "uses explicit binary path" do
@@ -32,7 +35,7 @@ defmodule CanonicalTailwind.PortTest do
       ]
     ]
 
-    assert CanonicalTailwind.Port.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
+    assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
              "flex p-3"
   end
 
@@ -44,7 +47,7 @@ defmodule CanonicalTailwind.PortTest do
 
     opts = [canonical_tailwind: [profile: :test_profile]]
 
-    assert CanonicalTailwind.Port.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
+    assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
              "flex p-3"
   end
 
@@ -53,7 +56,7 @@ defmodule CanonicalTailwind.PortTest do
 
     opts = [canonical_tailwind: [profile: :bare_profile]]
 
-    assert CanonicalTailwind.Port.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
+    assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 flex px-3 [display:_flex_]", opts) ==
              "flex p-3"
   end
 
@@ -61,7 +64,7 @@ defmodule CanonicalTailwind.PortTest do
     for {key, _} <- Application.get_all_env(:tailwind), do: Application.delete_env(:tailwind, key)
 
     assert_raise RuntimeError, ~r/No tailwind profiles found/, fn ->
-      CanonicalTailwind.Port.canonicalize("p-0", [])
+      CanonicalTailwind.Pool.canonicalize("p-0", [])
     end
   end
 
@@ -72,13 +75,13 @@ defmodule CanonicalTailwind.PortTest do
     )
 
     assert_raise RuntimeError, ~r/Multiple tailwind profiles found/, fn ->
-      CanonicalTailwind.Port.canonicalize("p-0", [])
+      CanonicalTailwind.Pool.canonicalize("p-0", [])
     end
   end
 
   test "raises for unknown tailwind profile" do
     assert_raise ArgumentError, ~r/unknown tailwind profile/, fn ->
-      CanonicalTailwind.Port.canonicalize("p-0", canonical_tailwind: [profile: :nonexistent])
+      CanonicalTailwind.Pool.canonicalize("p-0", canonical_tailwind: [profile: :nonexistent])
     end
   end
 
@@ -86,7 +89,7 @@ defmodule CanonicalTailwind.PortTest do
     Application.put_env(:tailwind, :version, "4.1.0")
 
     assert_raise RuntimeError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
-      CanonicalTailwind.Port.canonicalize("p-0", [])
+      CanonicalTailwind.Pool.canonicalize("p-0", [])
     end
   end
 
@@ -98,11 +101,22 @@ defmodule CanonicalTailwind.PortTest do
     ]
 
     assert_raise RuntimeError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
-      CanonicalTailwind.Port.canonicalize("p-0", opts)
+      CanonicalTailwind.Pool.canonicalize("p-0", opts)
     end
   end
 
+  defp teardown_pool do
+    for i <- 0..15 do
+      name = Module.concat(CanonicalTailwind.Canonicalizer, "#{i}")
+      if pid = GenServer.whereis(name), do: GenServer.stop(pid)
+    end
+
+    :persistent_term.erase({CanonicalTailwind.Pool, :ready})
+    :persistent_term.erase({CanonicalTailwind.Pool, :counter})
+    :persistent_term.erase({CanonicalTailwind.Pool, :size})
+  end
+
   defp canonicalize(class_string) do
-    CanonicalTailwind.Port.canonicalize(class_string, [])
+    CanonicalTailwind.Pool.canonicalize(class_string, [])
   end
 end
