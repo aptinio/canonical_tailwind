@@ -72,6 +72,22 @@ use:
 ]
 ```
 
+### Pool size
+
+CanonicalTailwind runs a pool of `tailwindcss` CLI processes to
+parallelize `mix format`. The default is 6. Smaller projects may
+benefit from fewer (less startup cost), larger projects from more (up
+to your CPU core count).
+
+```elixir
+# .formatter.exs
+[
+  plugins: [Phoenix.LiveView.HTMLFormatter],
+  attribute_formatters: %{class: CanonicalTailwind},
+  canonical_tailwind: [pool_size: 3],
+]
+```
+
 ### Without the tailwind hex package
 
 If you're not using the `:tailwind` hex package, provide the binary
