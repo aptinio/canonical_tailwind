@@ -50,6 +50,13 @@ existing HEEx formatter plugin:
 Now `mix format` automatically canonicalizes Tailwind classes in
 `class` attributes.
 
+## Editor usage
+
+If your editor formats via an LSP (like Expert or ElixirLS), the first
+format-on-save after starting the editor will take a few seconds while
+the `tailwindcss` CLI processes start up. Subsequent saves are near
+instant.
+
 ## Configuration
 
 If you have the [`:tailwind`](https://hex.pm/packages/tailwind) hex
