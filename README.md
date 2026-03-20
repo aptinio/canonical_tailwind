@@ -18,7 +18,7 @@ Unknown classes are preserved and sorted to the front.
 
 ## Requirements
 
-- Elixir ~> 1.17
+- Elixir ~> 1.18
 - Phoenix LiveView ~> 1.1 (for `attribute_formatters` support)
 - The `tailwindcss` CLI >= 4.2.2 (first version with `canonicalize`)
 
