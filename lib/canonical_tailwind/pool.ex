@@ -51,9 +51,13 @@ defmodule CanonicalTailwind.Pool do
 
         pick_server()
 
-      error ->
+      %{__exception__: true} = error ->
         stop_all(pool_size)
         raise error
+
+      error ->
+        stop_all(pool_size)
+        raise "failed to start canonicalizer pool: #{inspect(error)}"
     end
   end
 

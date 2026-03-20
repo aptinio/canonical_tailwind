@@ -89,10 +89,28 @@ defmodule CanonicalTailwind.Canonicalizer do
     case Keyword.get(tw_opts, :binary) do
       nil ->
         ensure_tailwind!()
-        {Tailwind.bin_path(), profile_config(tw_opts)}
+        binary = resolve_bin_path()
+        {binary, profile_config(tw_opts)}
 
       path ->
         {path, []}
+    end
+  end
+
+  defp resolve_bin_path do
+    path = Tailwind.bin_path()
+
+    if File.exists?(path) do
+      path
+    else
+      name = Path.basename(path)
+      fallback = Path.join("_build", name)
+
+      if File.exists?(fallback) do
+        Path.expand(fallback)
+      else
+        raise "tailwindcss binary not found at #{path} or #{fallback}. Run `mix tailwind.install`."
+      end
     end
   end
 
