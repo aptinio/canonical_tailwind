@@ -13,6 +13,9 @@ defmodule CanonicalTailwindTest do
     canonicalize("", "")
     canonicalize("   ", "   ")
 
+    # string: multi-line
+    canonicalize("p-0 flex\npy-3 p-1 px-3", "flex p-3")
+
     # expr: string literal
     canonicalize_expr(~S/"p-0 flex"/, ~S/"flex p-0"/)
 
@@ -92,6 +95,24 @@ defmodule CanonicalTailwindTest do
     canonicalize_expr(
       ~S/Enum.join([], " ")/,
       ~S/Enum.join([], " ")/
+    )
+
+    # expr: bare heredoc
+    canonicalize_expr(
+      ~s/"""\npy-3 p-1 px-3\n"""/,
+      ~s/"""\np-3\n"""/
+    )
+
+    # expr: heredoc sigil (double-quote)
+    canonicalize_expr(
+      ~s/~s"""\npy-3 p-1 px-3\n"""/,
+      ~s/~s"""\np-3\n"""/
+    )
+
+    # expr: heredoc sigil (single-quote)
+    canonicalize_expr(
+      "~s'''\npy-3 p-1 px-3\n'''",
+      "~s'''\np-3\n'''"
     )
   end
 

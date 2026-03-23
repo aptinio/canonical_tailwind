@@ -27,9 +27,27 @@ defmodule CanonicalTailwind do
 
   defp canonicalize_ast({:__block__, meta, [value]}, opts) when is_binary(value) do
     case meta[:delimiter] do
-      "\"" -> {:__block__, meta, [canonicalize(value, opts)]}
-      _ -> {:__block__, meta, [value]}
+      delim when delim in ["\"", "\"\"\""] ->
+        canonicalized =
+          value
+          |> canonicalize(opts)
+          |> preserve_heredoc_newline(delim)
+
+        {:__block__, meta, [canonicalized]}
+
+      _ ->
+        {:__block__, meta, [value]}
     end
+  end
+
+  defp canonicalize_ast({sigil, meta, [{:<<>>, bin_meta, [content]}, mods]}, opts)
+       when sigil in [:sigil_s, :sigil_S] and is_binary(content) do
+    canonicalized =
+      content
+      |> canonicalize(opts)
+      |> preserve_heredoc_newline(meta[:delimiter])
+
+    {sigil, meta, [{:<<>>, bin_meta, [canonicalized]}, mods]}
   end
 
   defp canonicalize_ast({:<<>>, meta, segments}, opts) do
@@ -68,6 +86,12 @@ defmodule CanonicalTailwind do
   end
 
   defp canonicalize_ast(other, _opts), do: other
+
+  defp preserve_heredoc_newline(value, delim) when delim in ["\"\"\"", "'''"] do
+    if String.ends_with?(value, "\n"), do: value, else: value <> "\n"
+  end
+
+  defp preserve_heredoc_newline(value, _delim), do: value
 
   defp canonicalize_segment(binary, prev_interp?, next_interp?, opts) do
     words = String.split(binary)
@@ -109,7 +133,9 @@ defmodule CanonicalTailwind do
     if String.trim(class_string) == "" do
       class_string
     else
-      CanonicalTailwind.Pool.canonicalize(class_string, opts)
+      class_string
+      |> String.replace("\n", " ")
+      |> CanonicalTailwind.Pool.canonicalize(opts)
     end
   end
 end
