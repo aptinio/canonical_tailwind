@@ -1,4 +1,6 @@
 defmodule CanonicalTailwind.Pool do
+  @moduledoc false
+
   @default_pool_size 6
   @ready_key {__MODULE__, :ready}
   @counter_key {__MODULE__, :counter}

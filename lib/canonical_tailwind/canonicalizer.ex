@@ -1,4 +1,6 @@
 defmodule CanonicalTailwind.Canonicalizer do
+  @moduledoc false
+
   use GenServer
 
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]

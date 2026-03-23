@@ -1,4 +1,6 @@
 defmodule CanonicalTailwind do
+  @moduledoc false
+
   def render_attribute({"class", nil, _meta} = attr, _opts), do: attr
 
   def render_attribute({"class", {:string, value, meta}, attr_meta}, opts) do

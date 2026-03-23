@@ -1,10 +1,13 @@
 defmodule CanonicalTailwind.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/aptinio/canonical_tailwind"
+
   def project do
     [
       app: :canonical_tailwind,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -32,7 +35,10 @@ defmodule CanonicalTailwind.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"]
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      extras: ["README.md", "CHANGELOG.md"],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 
@@ -40,7 +46,10 @@ defmodule CanonicalTailwind.MixProject do
     [
       description: "Canonicalizes Tailwind CSS utility classes in HEEx templates",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/aptinio/canonical_tailwind"}
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "https://hexdocs.pm/canonical_tailwind/changelog.html"
+      }
     ]
   end
 
