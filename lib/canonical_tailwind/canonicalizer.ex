@@ -35,7 +35,7 @@ defmodule CanonicalTailwind.Canonicalizer do
 
   defp open_port(opts) do
     tw_opts = Keyword.get(opts, :canonical_tailwind, [])
-    {binary, config} = resolve_binary(tw_opts)
+    {binary, profile_config} = resolve_binary(tw_opts)
     ensure_minimum_version!(binary, tw_opts)
 
     args =
@@ -43,7 +43,7 @@ defmodule CanonicalTailwind.Canonicalizer do
         [
           "canonicalize",
           "--stream",
-          resolve_input(tw_opts, config)
+          resolve_input(tw_opts, profile_config)
         ],
         &is_nil/1
       )
@@ -56,7 +56,7 @@ defmodule CanonicalTailwind.Canonicalizer do
     ]
 
     port_opts =
-      case resolve_cd(tw_opts, config) do
+      case resolve_cd(tw_opts, profile_config) do
         nil -> port_opts
         path -> [{:cd, to_charlist(path)} | port_opts]
       end
@@ -149,7 +149,7 @@ defmodule CanonicalTailwind.Canonicalizer do
       :tailwind
       |> Application.get_all_env()
       |> Keyword.drop(@non_profile_keys)
-      |> Enum.reject(fn {_name, config} -> config == [] end)
+      |> Enum.reject(fn {_name, profile_config} -> profile_config == [] end)
 
     case profiles do
       [] ->
@@ -166,10 +166,10 @@ defmodule CanonicalTailwind.Canonicalizer do
     end
   end
 
-  defp resolve_input(tw_opts, config) do
+  defp resolve_input(tw_opts, profile_config) do
     case Keyword.get(tw_opts, :input) do
       nil ->
-        args = config[:args] || []
+        args = profile_config[:args] || []
 
         case Enum.find_value(args, &extract_input/1) do
           nil -> nil
@@ -184,9 +184,9 @@ defmodule CanonicalTailwind.Canonicalizer do
   defp extract_input("--input=" <> path), do: path
   defp extract_input(_), do: nil
 
-  defp resolve_cd(tw_opts, config) do
+  defp resolve_cd(tw_opts, profile_config) do
     case Keyword.get(tw_opts, :cd) do
-      nil -> config[:cd]
+      nil -> profile_config[:cd]
       path -> path
     end
   end
