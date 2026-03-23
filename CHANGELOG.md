@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.1 (2026-03-23)
+
+### Bug fixes
+  - [CanonicalTailwind] Fix newlines in class strings breaking port line protocol
+
 ## v0.1.0 (2026-03-20)
 
 Initial release.
