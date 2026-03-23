@@ -43,18 +43,25 @@ defmodule CanonicalTailwind.Canonicalizer do
         [
           "canonicalize",
           "--stream",
-          resolve_input(tw_opts, config),
-          resolve_cwd(tw_opts, config)
+          resolve_input(tw_opts, config)
         ],
         &is_nil/1
       )
 
-    Port.open({:spawn_executable, binary}, [
+    port_opts = [
       :binary,
       :use_stdio,
       {:line, 65_536},
       args: args
-    ])
+    ]
+
+    port_opts =
+      case resolve_cd(tw_opts, config) do
+        nil -> port_opts
+        path -> [{:cd, to_charlist(path)} | port_opts]
+      end
+
+    Port.open({:spawn_executable, binary}, port_opts)
   end
 
   @minimum_version Version.parse!("4.2.2")
@@ -177,16 +184,10 @@ defmodule CanonicalTailwind.Canonicalizer do
   defp extract_input("--input=" <> path), do: path
   defp extract_input(_), do: nil
 
-  defp resolve_cwd(tw_opts, config) do
+  defp resolve_cd(tw_opts, config) do
     case Keyword.get(tw_opts, :cd) do
-      nil ->
-        case config[:cd] do
-          nil -> nil
-          path -> "--cwd=" <> to_string(path)
-        end
-
-      path ->
-        "--cwd=" <> to_string(path)
+      nil -> config[:cd]
+      path -> path
     end
   end
 
