@@ -21,6 +21,7 @@ defmodule CanonicalTailwind.Pool do
 
   defp start_pool!(opts) do
     pool_size = pool_size(opts)
+    tailwind_env = Application.get_all_env(:tailwind)
 
     results =
       0..(pool_size - 1)
@@ -28,7 +29,7 @@ defmodule CanonicalTailwind.Pool do
         fn i ->
           name = server_name(i)
 
-          case GenServer.start(CanonicalTailwind.Canonicalizer, opts, name: name) do
+          case GenServer.start(CanonicalTailwind.Canonicalizer, {opts, tailwind_env}, name: name) do
             {:ok, _pid} -> :ok
             {:error, {:already_started, _pid}} -> :ok
             {:error, {error, _stacktrace}} -> {:error, error}
