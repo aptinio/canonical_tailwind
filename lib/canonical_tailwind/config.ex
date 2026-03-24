@@ -9,6 +9,8 @@ defmodule CanonicalTailwind.Config do
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
     {binary, profile_config} = resolve_binary(opts, tailwind_env)
+    cd = resolve_cd(opts, profile_config)
+    binary = Path.expand(binary, cd)
     ensure_minimum_version!(binary, opts, tailwind_env)
 
     args =
@@ -16,13 +18,12 @@ defmodule CanonicalTailwind.Config do
         [
           "canonicalize",
           "--stream",
-          resolve_input(opts, profile_config),
-          resolve_cwd(opts, profile_config)
+          resolve_input(opts, profile_config)
         ],
         &is_nil/1
       )
 
-    %__MODULE__{binary: binary, cd: nil, args: args}
+    %__MODULE__{binary: binary, cd: cd, args: args}
   end
 
   defp resolve_binary(opts, tailwind_env) do
@@ -96,6 +97,13 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
+  defp resolve_cd(opts, profile_config) do
+    case Keyword.get(opts, :cd) do
+      nil -> profile_config[:cd] || File.cwd!()
+      path -> path
+    end
+  end
+
   defp ensure_minimum_version!(binary, opts, tailwind_env) do
     version =
       if Keyword.has_key?(opts, :binary) do
@@ -141,17 +149,4 @@ defmodule CanonicalTailwind.Config do
 
   defp extract_input("--input=" <> path), do: path
   defp extract_input(_), do: nil
-
-  defp resolve_cwd(opts, profile_config) do
-    case Keyword.get(opts, :cd) do
-      nil ->
-        case profile_config[:cd] do
-          nil -> nil
-          path -> "--cwd=" <> to_string(path)
-        end
-
-      path ->
-        "--cwd=" <> to_string(path)
-    end
-  end
 end

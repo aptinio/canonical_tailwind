@@ -3,22 +3,51 @@ defmodule CanonicalTailwind.ConfigTest do
 
   alias CanonicalTailwind.Config
 
+  @binary Tailwind.bin_path()
+  @relative_binary Path.relative_to(@binary, File.cwd!())
+  @project_root File.cwd!()
+  @input "test/fixtures/input.css"
+
   describe "custom binary" do
     test "with :binary, :cd, and :input" do
-      config =
-        resolve!(
-          binary: Tailwind.bin_path(),
-          input: "test/fixtures/input.css",
-          cd: "."
-        )
+      config = resolve!(binary: @binary, cd: @project_root, input: @input)
 
-      assert "--input=test/fixtures/input.css" in config.args
-      assert "--cwd=." in config.args
+      assert config.binary == @binary
+      assert config.cd == @project_root
+      assert "--input=#{@input}" in config.args
+    end
+
+    test "with :binary and :cd" do
+      config = resolve!(binary: @binary, cd: @project_root)
+
+      assert config.binary == @binary
+      assert config.cd == @project_root
+    end
+
+    test "with :binary and :input, cd defaults to project root" do
+      config = resolve!(binary: @binary, input: @input)
+
+      assert config.binary == @binary
+      assert config.cd == @project_root
+      assert "--input=#{@input}" in config.args
+    end
+
+    test "with :binary only, cd defaults to project root" do
+      config = resolve!(binary: @binary)
+
+      assert config.binary == @binary
+      assert config.cd == @project_root
+    end
+
+    test "resolves relative :binary against :cd" do
+      config = resolve!(binary: @relative_binary, cd: @project_root)
+
+      assert config.binary == @binary
     end
 
     test "raises when explicit binary version is too old" do
       assert_raise RuntimeError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
-        resolve!(binary: Path.expand("../fixtures/tailwindcss-v4.2.1", __DIR__))
+        resolve!(binary: Path.expand("../fixtures/tailwindcss-v4.2.1", __DIR__), cd: ".")
       end
     end
   end
@@ -29,18 +58,18 @@ defmodule CanonicalTailwind.ConfigTest do
       cd: File.cwd!()
     ]
 
-    test "resolves input and cwd from profile" do
+    test "resolves input and cd from profile" do
       config = resolve_with_env([test_profile: @profile_config], profile: :test_profile)
 
       assert "--input=test/fixtures/input.css" in config.args
-      assert "--cwd=#{File.cwd!()}" in config.args
+      assert config.cd == @project_root
     end
 
-    test "works without input or cwd in profile" do
+    test "works without input or cd in profile" do
       config = resolve_with_env([bare_profile: [args: []]], profile: :bare_profile)
 
+      assert config.cd == @project_root
       refute Enum.any?(config.args, &String.starts_with?(&1, "--input="))
-      refute Enum.any?(config.args, &String.starts_with?(&1, "--cwd="))
     end
 
     test "raises when no tailwind profiles are configured" do

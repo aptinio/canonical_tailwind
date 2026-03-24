@@ -95,12 +95,18 @@ to your CPU core count).
 ]
 ```
 
-### Without the tailwind hex package
+### Custom binary
 
-If you're not using the `:tailwind` hex package, provide the binary
-path and input CSS explicitly. The CLI needs your CSS entrypoint to
-resolve `@theme` customizations and plugins when determining canonical
-forms.
+If you're not using the `:tailwind` hex package, provide the path to
+the CLI binary and optionally a CSS entrypoint. The CLI needs your
+CSS entrypoint to resolve `@theme` customizations and plugins when
+determining canonical forms.
+
+- **`:binary`** — path to the `tailwindcss` executable, relative to
+  `:cd`
+- **`:cd`** — working directory for the CLI process (defaults to the
+  project root)
+- **`:input`** — CSS entrypoint, relative to `:cd`
 
 ```elixir
 # .formatter.exs
@@ -108,8 +114,9 @@ forms.
   plugins: [Phoenix.LiveView.HTMLFormatter],
   attribute_formatters: %{class: CanonicalTailwind},
   canonical_tailwind: [
-    binary: "/path/to/tailwindcss",
-    input: "assets/css/app.css"
+    binary: "node_modules/.bin/tailwindcss",
+    input: "css/app.css",
+    cd: Path.expand("assets", __DIR__)
   ],
   # ...
 ]

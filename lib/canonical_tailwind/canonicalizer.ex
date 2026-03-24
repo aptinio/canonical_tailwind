@@ -35,12 +35,15 @@ defmodule CanonicalTailwind.Canonicalizer do
   defp open_port(opts, tailwind_env) do
     config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
 
-    Port.open({:spawn_executable, config.binary}, [
+    port_opts = [
       :binary,
       :use_stdio,
       {:line, 65_536},
+      {:cd, to_charlist(config.cd)},
       args: config.args
-    ])
+    ]
+
+    Port.open({:spawn_executable, config.binary}, port_opts)
   end
 
   @receive_timeout 10_000
