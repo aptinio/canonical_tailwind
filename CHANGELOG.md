@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.2 (2026-03-25)
+
+### Bug fixes
+  - Fix Node-based CLI support by setting OS working directory from `:cd`
+
 ## v0.1.1 (2026-03-23)
 
 ### Bug fixes
