@@ -3,15 +3,9 @@ defmodule CanonicalTailwind.Canonicalizer do
 
   use GenServer
 
-  @warm_up_classes "p-0 m-0 flex text-red-500 bg-white border rounded font-bold w-0 h-0"
-
-  @init_timeout 30_000
-
   @impl GenServer
   def init({opts, tailwind_env}) do
     port = open_port(opts, tailwind_env)
-    Port.command(port, [@warm_up_classes, ?\n])
-    receive_line(port, [], @init_timeout)
     {:ok, %{port: port}}
   end
 
