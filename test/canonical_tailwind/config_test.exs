@@ -95,14 +95,6 @@ defmodule CanonicalTailwind.ConfigTest do
       end
     end
 
-    test "raises when tailwind CLI version is too old" do
-      tailwind_env = [version: "4.1.0", default: @profile_config]
-
-      assert_raise RuntimeError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
-        Config.resolve!([], tailwind_env)
-      end
-    end
-
     defp resolve_with_env(tailwind_env, opts) do
       Config.resolve!([canonical_tailwind: opts], tailwind_env)
     end

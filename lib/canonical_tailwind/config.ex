@@ -11,7 +11,7 @@ defmodule CanonicalTailwind.Config do
     {binary, profile_config} = resolve_binary(opts, tailwind_env)
     cd = resolve_cd(opts, profile_config)
     binary = Path.expand(binary, cd)
-    ensure_minimum_version!(binary, opts, tailwind_env)
+    ensure_minimum_version!(binary, opts)
 
     args =
       Enum.reject(
@@ -104,18 +104,16 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
-  defp ensure_minimum_version!(binary, opts, tailwind_env) do
-    version =
-      if Keyword.has_key?(opts, :binary) do
-        detect_cli_version(binary)
-      else
-        Keyword.get(tailwind_env, :version)
-      end
+  defp ensure_minimum_version!(binary, opts) do
+    version = detect_cli_version(binary)
 
-    parsed = version && Version.parse!(version)
+    if version && Version.compare(version, @minimum_version) == :lt do
+      hint =
+        if not Keyword.has_key?(opts, :binary) do
+          " Run `mix tailwind.install` to upgrade."
+        end
 
-    if parsed && Version.compare(parsed, @minimum_version) == :lt do
-      raise "canonical_tailwind requires tailwindcss >= 4.2.2, got #{version}"
+      raise "canonical_tailwind requires tailwindcss >= #{@minimum_version}, got #{version}.#{hint}"
     end
   end
 
@@ -123,7 +121,7 @@ defmodule CanonicalTailwind.Config do
     case System.cmd(binary, ["--help"], stderr_to_stdout: true, env: []) do
       {output, 0} ->
         case Regex.run(~r/tailwindcss v(\d+\.\d+\.\d+)/, output) do
-          [_, version] -> version
+          [_, version] -> Version.parse!(version)
           _ -> nil
         end
 
