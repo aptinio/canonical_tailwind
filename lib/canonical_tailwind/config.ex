@@ -10,10 +10,12 @@ defmodule CanonicalTailwind.Config do
 
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
-    pool_size = Keyword.get(opts, :pool_size, @default_pool_size)
+    pool_size = validate_pool_size!(opts)
     {binary, profile_config} = resolve_binary!(opts, tailwind_env)
     cd = resolve_cd!(opts, profile_config)
+    validate_cd!(cd)
     binary = Path.expand(binary, cd)
+    validate_binary!(binary)
     ensure_minimum_version!(binary, opts)
 
     args =
@@ -43,7 +45,8 @@ defmodule CanonicalTailwind.Config do
 
   defp ensure_tailwind! do
     unless Code.ensure_loaded?(Tailwind) do
-      raise "The :tailwind package is required but not available. " <>
+      raise ArgumentError,
+            "the :tailwind package is required but not available. " <>
               "Add {:tailwind, ...} to your deps, or set canonical_tailwind: [binary: ...] explicitly."
     end
   end
@@ -51,17 +54,11 @@ defmodule CanonicalTailwind.Config do
   defp resolve_bin_path! do
     path = Tailwind.bin_path()
 
-    if File.exists?(path) do
+    if System.find_executable(path) do
       path
     else
-      name = Path.basename(path)
-      fallback = Path.join("_build", name)
-
-      if File.exists?(fallback) do
-        Path.expand(fallback)
-      else
-        raise "tailwindcss binary not found at #{path} or #{fallback}. Run `mix tailwind.install`."
-      end
+      raise ArgumentError,
+            "tailwindcss binary is not installed. Run `mix tailwind.install`."
     end
   end
 
@@ -69,7 +66,7 @@ defmodule CanonicalTailwind.Config do
     profile = detect_profile!(opts, tailwind_env)
 
     Keyword.get(tailwind_env, profile) ||
-      raise ArgumentError, "unknown tailwind profile: #{inspect(profile)}"
+      raise ArgumentError, "unknown tailwind profile: #{inspect(profile)}."
   end
 
   defp detect_profile!(opts, tailwind_env) do
@@ -87,7 +84,7 @@ defmodule CanonicalTailwind.Config do
 
     case profiles do
       [] ->
-        raise "No tailwind profiles found. Configure :tailwind in your config."
+        raise ArgumentError, "no tailwind profiles found. Configure :tailwind in your config."
 
       [{name, _profile}] ->
         name
@@ -95,7 +92,8 @@ defmodule CanonicalTailwind.Config do
       profiles ->
         names = Keyword.keys(profiles)
 
-        raise "Multiple tailwind profiles found: #{inspect(names)}. " <>
+        raise ArgumentError,
+              "multiple tailwind profiles found: #{inspect(names)}. " <>
                 "Set canonical_tailwind: [profile: :name] in your formatter options."
     end
   end
@@ -116,7 +114,8 @@ defmodule CanonicalTailwind.Config do
           " Run `mix tailwind.install` to upgrade."
         end
 
-      raise "canonical_tailwind requires tailwindcss >= #{@minimum_version}, got #{version}.#{hint}"
+      raise ArgumentError,
+            "canonical_tailwind requires tailwindcss >= #{@minimum_version}, got #{version}.#{hint}"
     end
   end
 
@@ -150,4 +149,28 @@ defmodule CanonicalTailwind.Config do
 
   defp extract_input("--input=" <> path), do: path
   defp extract_input(_), do: nil
+
+  defp validate_pool_size!(opts) do
+    size = Keyword.get(opts, :pool_size, @default_pool_size)
+
+    unless is_integer(size) and size > 0 do
+      raise ArgumentError,
+            "expected :pool_size to be a positive integer, got: #{inspect(size)}."
+    end
+
+    size
+  end
+
+  defp validate_cd!(cd) do
+    unless File.dir?(cd) do
+      raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
+    end
+  end
+
+  defp validate_binary!(binary) do
+    unless System.find_executable(binary) do
+      raise ArgumentError,
+            "tailwindcss binary at #{binary} does not exist or is not executable."
+    end
+  end
 end

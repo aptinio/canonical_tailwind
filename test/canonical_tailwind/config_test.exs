@@ -46,8 +46,22 @@ defmodule CanonicalTailwind.ConfigTest do
     end
 
     test "raises when explicit binary version is too old" do
-      assert_raise RuntimeError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
+      assert_raise ArgumentError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
         resolve!(binary: Path.expand("../fixtures/tailwindcss-v4.2.1", __DIR__), cd: ".")
+      end
+    end
+
+    test "raises when binary is not executable" do
+      assert_raise ArgumentError, ~r/does not exist or is not executable/, fn ->
+        resolve!(binary: "/nonexistent/tailwindcss")
+      end
+    end
+  end
+
+  describe "cd" do
+    test "raises when :cd is not a directory" do
+      assert_raise ArgumentError, ~r/is not a directory/, fn ->
+        resolve!(binary: @binary, cd: "/nonexistent/path")
       end
     end
   end
@@ -73,7 +87,7 @@ defmodule CanonicalTailwind.ConfigTest do
     end
 
     test "raises when no tailwind profiles are configured" do
-      assert_raise RuntimeError, ~r/No tailwind profiles found/, fn ->
+      assert_raise ArgumentError, ~r/no tailwind profiles found/, fn ->
         Config.resolve!([], [])
       end
     end
@@ -84,7 +98,7 @@ defmodule CanonicalTailwind.ConfigTest do
         second: @profile_config
       ]
 
-      assert_raise RuntimeError, ~r/Multiple tailwind profiles found/, fn ->
+      assert_raise ArgumentError, ~r/multiple tailwind profiles found/, fn ->
         Config.resolve!([], tailwind_env)
       end
     end
@@ -97,6 +111,22 @@ defmodule CanonicalTailwind.ConfigTest do
 
     defp resolve_with_env(tailwind_env, opts) do
       Config.resolve!([canonical_tailwind: opts], tailwind_env)
+    end
+  end
+
+  describe "pool size" do
+    test "raises when pool_size is not a positive integer" do
+      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
+        resolve!(binary: @binary, pool_size: 0)
+      end
+
+      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
+        resolve!(binary: @binary, pool_size: -1)
+      end
+
+      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
+        resolve!(binary: @binary, pool_size: 1.5)
+      end
     end
   end
 
