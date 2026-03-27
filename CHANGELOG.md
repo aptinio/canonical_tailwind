@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.3 (2026-03-28)
+
+### Enhancements
+  - Support attributes other than `class` via `attribute_formatters` (#4)
+  - Validate `:binary`, `:cd`, and `:pool_size` config options at startup
+  - Check minimum CLI version against the installed binary, not just the configured version
+
 ## v0.1.2 (2026-03-25)
 
 ### Bug fixes
