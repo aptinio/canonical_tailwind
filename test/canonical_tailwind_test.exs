@@ -14,6 +14,10 @@ defmodule CanonicalTailwindTest do
 
     refute :persistent_term.get({CanonicalTailwind.Pool, :ready}, false)
 
+    # any attribute name is canonicalized
+    assert {"foo", {:string, "flex p-0", _}, _} =
+             CanonicalTailwind.render_attribute({"foo", {:string, "p-0 flex", %{}}, %{}}, [])
+
     # string: canonicalizes the value
     canonicalize("p-0 flex", "flex p-0")
     canonicalize("flex", "flex")

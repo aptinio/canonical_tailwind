@@ -1,15 +1,15 @@
 defmodule CanonicalTailwind do
   @moduledoc false
 
-  def render_attribute({"class", nil, _meta} = attr, _opts), do: attr
+  def render_attribute({_name, nil, _meta} = attr, _opts), do: attr
 
-  def render_attribute({"class", {:string, value, meta}, attr_meta}, opts) do
-    {"class", {:string, canonicalize(value, opts), meta}, attr_meta}
+  def render_attribute({name, {:string, value, meta}, attr_meta}, opts) do
+    {name, {:string, canonicalize(value, opts), meta}, attr_meta}
   end
 
-  def render_attribute({"class", {:expr, value, meta}, attr_meta}, opts) do
+  def render_attribute({name, {:expr, value, meta}, attr_meta}, opts) do
     line_length = opts[:heex_line_length] || opts[:line_length] || 98
-    {"class", {:expr, canonicalize_expr(value, opts, line_length), meta}, attr_meta}
+    {name, {:expr, canonicalize_expr(value, opts, line_length), meta}, attr_meta}
   end
 
   defp canonicalize_expr(expr, opts, line_length) do
