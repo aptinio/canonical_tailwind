@@ -4,8 +4,8 @@ defmodule CanonicalTailwind.Canonicalizer do
   use GenServer
 
   @impl GenServer
-  def init({opts, tailwind_env}) do
-    port = open_port(opts, tailwind_env)
+  def init(config) do
+    port = open_port(config)
     {:ok, %{port: port}}
   end
 
@@ -26,9 +26,7 @@ defmodule CanonicalTailwind.Canonicalizer do
     if Port.info(port), do: Port.close(port)
   end
 
-  defp open_port(opts, tailwind_env) do
-    config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
-
+  defp open_port(config) do
     port_opts = [
       :binary,
       :use_stdio,

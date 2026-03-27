@@ -1,15 +1,18 @@
 defmodule CanonicalTailwind.Config do
   @moduledoc false
 
-  @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
+  @default_pool_size 6
   @minimum_version Version.parse!("4.2.2")
+  @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
 
-  defstruct [:binary, :cd, :args]
+  @enforce_keys [:args, :binary, :cd, :pool_size]
+  defstruct @enforce_keys
 
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
-    {binary, profile_config} = resolve_binary(opts, tailwind_env)
-    cd = resolve_cd(opts, profile_config)
+    pool_size = Keyword.get(opts, :pool_size, @default_pool_size)
+    {binary, profile_config} = resolve_binary!(opts, tailwind_env)
+    cd = resolve_cd!(opts, profile_config)
     binary = Path.expand(binary, cd)
     ensure_minimum_version!(binary, opts)
 
@@ -23,15 +26,15 @@ defmodule CanonicalTailwind.Config do
         &is_nil/1
       )
 
-    %__MODULE__{binary: binary, cd: cd, args: args}
+    %__MODULE__{args: args, binary: binary, cd: cd, pool_size: pool_size}
   end
 
-  defp resolve_binary(opts, tailwind_env) do
+  defp resolve_binary!(opts, tailwind_env) do
     case Keyword.get(opts, :binary) do
       nil ->
         ensure_tailwind!()
-        binary = resolve_bin_path()
-        {binary, profile_config(opts, tailwind_env)}
+        binary = resolve_bin_path!()
+        {binary, profile_config!(opts, tailwind_env)}
 
       path ->
         {path, []}
@@ -45,7 +48,7 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
-  defp resolve_bin_path do
+  defp resolve_bin_path! do
     path = Tailwind.bin_path()
 
     if File.exists?(path) do
@@ -62,21 +65,21 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
-  defp profile_config(opts, tailwind_env) do
-    profile = detect_profile(opts, tailwind_env)
+  defp profile_config!(opts, tailwind_env) do
+    profile = detect_profile!(opts, tailwind_env)
 
     Keyword.get(tailwind_env, profile) ||
       raise ArgumentError, "unknown tailwind profile: #{inspect(profile)}"
   end
 
-  defp detect_profile(opts, tailwind_env) do
+  defp detect_profile!(opts, tailwind_env) do
     case Keyword.get(opts, :profile) do
-      nil -> detect_single_profile(tailwind_env)
+      nil -> detect_single_profile!(tailwind_env)
       name -> name
     end
   end
 
-  defp detect_single_profile(tailwind_env) do
+  defp detect_single_profile!(tailwind_env) do
     profiles =
       tailwind_env
       |> Keyword.drop(@non_profile_keys)
@@ -97,7 +100,7 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
-  defp resolve_cd(opts, profile_config) do
+  defp resolve_cd!(opts, profile_config) do
     case Keyword.get(opts, :cd) do
       nil -> profile_config[:cd] || File.cwd!()
       path -> path

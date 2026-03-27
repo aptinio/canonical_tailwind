@@ -1,7 +1,6 @@
 defmodule CanonicalTailwind.Pool do
   @moduledoc false
 
-  @default_pool_size 6
   @ready_key {__MODULE__, :ready}
   @counter_key {__MODULE__, :counter}
   @size_key {__MODULE__, :size}
@@ -20,8 +19,9 @@ defmodule CanonicalTailwind.Pool do
   end
 
   defp start_pool!(opts) do
-    pool_size = pool_size(opts)
     tailwind_env = Application.get_all_env(:tailwind)
+    config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
+    pool_size = config.pool_size
 
     results =
       0..(pool_size - 1)
@@ -29,7 +29,7 @@ defmodule CanonicalTailwind.Pool do
         fn i ->
           name = server_name(i)
 
-          case GenServer.start(CanonicalTailwind.Canonicalizer, {opts, tailwind_env}, name: name) do
+          case GenServer.start(CanonicalTailwind.Canonicalizer, config, name: name) do
             {:ok, _pid} -> :ok
             {:error, {:already_started, _pid}} -> :ok
             {:error, {error, _stacktrace}} -> {:error, error}
@@ -74,12 +74,6 @@ defmodule CanonicalTailwind.Pool do
   defp server_name(index) do
     # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
-  end
-
-  defp pool_size(opts) do
-    opts
-    |> Keyword.get(:canonical_tailwind, [])
-    |> Keyword.get(:pool_size, @default_pool_size)
   end
 
   defp stop_all(pool_size) do
