@@ -133,6 +133,22 @@ defmodule CanonicalTailwind.ConfigTest do
     end
   end
 
+  describe ":cli_timeout" do
+    test "must be a positive integer" do
+      assert_raise ArgumentError, ~r/expected :cli_timeout to be a positive integer/, fn ->
+        resolve!(binary: @binary, cli_timeout: 0)
+      end
+
+      assert_raise ArgumentError, ~r/expected :cli_timeout to be a positive integer/, fn ->
+        resolve!(binary: @binary, cli_timeout: -1)
+      end
+
+      assert_raise ArgumentError, ~r/expected :cli_timeout to be a positive integer/, fn ->
+        resolve!(binary: @binary, cli_timeout: 1.5)
+      end
+    end
+  end
+
   defp resolve!(opts) do
     Config.resolve!([canonical_tailwind: opts], [])
   end

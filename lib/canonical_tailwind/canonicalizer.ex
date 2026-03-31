@@ -6,13 +6,17 @@ defmodule CanonicalTailwind.Canonicalizer do
   @impl GenServer
   def init(config) do
     port = open_port(config)
-    {:ok, %{port: port}}
+    {:ok, %{port: port, cli_timeout: config.cli_timeout}}
   end
 
   @impl GenServer
-  def handle_call({:canonicalize, class_string}, _from, %{port: port} = state) do
+  def handle_call(
+        {:canonicalize, class_string},
+        _from,
+        %{port: port, cli_timeout: cli_timeout} = state
+      ) do
     Port.command(port, [class_string, ?\n])
-    result = receive_line(port)
+    result = receive_line(port, cli_timeout)
     {:reply, result, state}
   end
 
@@ -38,10 +42,8 @@ defmodule CanonicalTailwind.Canonicalizer do
     Port.open({:spawn_executable, config.binary}, port_opts)
   end
 
-  @receive_timeout 10_000
-
-  defp receive_line(port) do
-    receive_line(port, [], @receive_timeout)
+  defp receive_line(port, cli_timeout) do
+    receive_line(port, [], cli_timeout)
   end
 
   defp receive_line(port, acc, timeout) do

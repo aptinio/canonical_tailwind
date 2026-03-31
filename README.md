@@ -95,6 +95,22 @@ to your CPU core count).
 ]
 ```
 
+### CLI Timeout
+
+Execution time of the `tailwindcss` CLI can vary from project to project,
+and even environment to environment causing execution to fail if the timeout
+is reached. For larger projects, the CLI timeout can be configured through
+`:cli_timeout`. The default is 10,000ms.
+
+```elixir
+# .formatter.exs
+[
+  plugins: [Phoenix.LiveView.HTMLFormatter],
+  attribute_formatters: %{class: CanonicalTailwind},
+  canonical_tailwind: [cli_timeout: 30_000],
+]
+```
+
 ### Custom binary
 
 If you're not using the `:tailwind` hex package, provide the path to
