@@ -2,17 +2,17 @@ defmodule CanonicalTailwind.Config do
   @moduledoc false
 
   @default_pool_size 6
-  @default_cli_timeout 10_000
+  @default_timeout 30_000
   @minimum_version Version.parse!("4.2.2")
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
 
-  @enforce_keys [:args, :binary, :cd, :pool_size, :cli_timeout]
+  @enforce_keys [:args, :binary, :cd, :pool_size, :timeout]
   defstruct @enforce_keys
 
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
     pool_size = validate_pool_size!(opts)
-    cli_timeout = validate_cli_timeout!(opts)
+    timeout = validate_timeout!(opts)
     {binary, profile_config} = resolve_binary!(opts, tailwind_env)
     cd = resolve_cd!(opts, profile_config)
     validate_cd!(cd)
@@ -35,7 +35,7 @@ defmodule CanonicalTailwind.Config do
       binary: binary,
       cd: cd,
       pool_size: pool_size,
-      cli_timeout: cli_timeout
+      timeout: timeout
     }
   end
 
@@ -169,6 +169,17 @@ defmodule CanonicalTailwind.Config do
     size
   end
 
+  defp validate_timeout!(opts) do
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
+
+    unless is_integer(timeout) and timeout > 0 do
+      raise ArgumentError,
+            "expected :timeout to be a positive integer, got: #{inspect(timeout)}."
+    end
+
+    timeout
+  end
+
   defp validate_cd!(cd) do
     unless File.dir?(cd) do
       raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
@@ -180,16 +191,5 @@ defmodule CanonicalTailwind.Config do
       raise ArgumentError,
             "tailwindcss binary at #{binary} does not exist or is not executable."
     end
-  end
-
-  defp validate_cli_timeout!(opts) do
-    cli_timeout = Keyword.get(opts, :cli_timeout, @default_cli_timeout)
-
-    unless is_integer(cli_timeout) and cli_timeout > 0 do
-      raise ArgumentError,
-            "expected :cli_timeout to be a positive integer, got: #{inspect(cli_timeout)}"
-    end
-
-    cli_timeout
   end
 end
