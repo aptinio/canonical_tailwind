@@ -2,15 +2,17 @@ defmodule CanonicalTailwind.Config do
   @moduledoc false
 
   @default_pool_size 6
+  @default_timeout 30_000
   @minimum_version Version.parse!("4.2.2")
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
 
-  @enforce_keys [:args, :binary, :cd, :pool_size]
+  @enforce_keys [:args, :binary, :cd, :pool_size, :timeout]
   defstruct @enforce_keys
 
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
     pool_size = validate_pool_size!(opts)
+    timeout = validate_timeout!(opts)
     {binary, profile_config} = resolve_binary!(opts, tailwind_env)
     cd = resolve_cd!(opts, profile_config)
     validate_cd!(cd)
@@ -28,7 +30,13 @@ defmodule CanonicalTailwind.Config do
         &is_nil/1
       )
 
-    %__MODULE__{args: args, binary: binary, cd: cd, pool_size: pool_size}
+    %__MODULE__{
+      args: args,
+      binary: binary,
+      cd: cd,
+      pool_size: pool_size,
+      timeout: timeout
+    }
   end
 
   defp resolve_binary!(opts, tailwind_env) do
@@ -159,6 +167,17 @@ defmodule CanonicalTailwind.Config do
     end
 
     size
+  end
+
+  defp validate_timeout!(opts) do
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
+
+    unless is_integer(timeout) and timeout > 0 do
+      raise ArgumentError,
+            "expected :timeout to be a positive integer, got: #{inspect(timeout)}."
+    end
+
+    timeout
   end
 
   defp validate_cd!(cd) do

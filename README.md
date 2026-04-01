@@ -95,6 +95,21 @@ to your CPU core count).
 ]
 ```
 
+### Timeout
+
+The `tailwindcss` CLI needs to initialize before it can respond to
+its first request. On slower CI machines or larger projects, this can
+exceed the default timeout of 30 seconds. Adjust with `:timeout`:
+
+```elixir
+# .formatter.exs
+[
+  plugins: [Phoenix.LiveView.HTMLFormatter],
+  attribute_formatters: %{class: CanonicalTailwind},
+  canonical_tailwind: [timeout: 60_000],
+]
+```
+
 ### Custom binary
 
 If you're not using the `:tailwind` hex package, provide the path to
