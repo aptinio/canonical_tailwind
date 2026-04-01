@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4 (2026-04-01)
+
+### Enhancements
+  - Add configurable `:timeout` option for CLI response (default 30s) (#6)
+
 ## v0.1.3 (2026-03-28)
 
 ### Enhancements
