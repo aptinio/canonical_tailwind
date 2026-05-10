@@ -62,6 +62,11 @@ defmodule CanonicalTailwind.Pool do
   end
 
   defp do_start_pool!(opts) do
+    # Stop workers left over from a previous cold start that crashed before
+    # writing persistent terms — otherwise they'd survive into the new pool
+    # with stale config.
+    clear_stale_workers!()
+
     tailwind_env = Application.get_all_env(:tailwind)
     fingerprint = config_fingerprint(opts, tailwind_env)
     config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
@@ -101,6 +106,18 @@ defmodule CanonicalTailwind.Pool do
         stop_all(pool_size)
         raise "failed to start canonicalizer pool: #{inspect(error)}"
     end
+  end
+
+  defp clear_stale_workers! do
+    Process.registered()
+    |> Enum.filter(&canonicalizer_name?/1)
+    |> Enum.each(&GenServer.stop/1)
+  end
+
+  defp canonicalizer_name?(name) do
+    name
+    |> Atom.to_string()
+    |> String.match?(~r/^Elixir\.CanonicalTailwind\.Canonicalizer\.\d+$/)
   end
 
   defp config_fingerprint(formatter_opts, tailwind_env) do

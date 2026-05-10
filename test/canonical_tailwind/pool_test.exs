@@ -32,6 +32,22 @@ defmodule CanonicalTailwind.PoolTest do
     assert GenServer.whereis(name)
   end
 
+  test "stops stale workers from a prior incomplete cold start" do
+    CanonicalTailwind.Pool.canonicalize("p-0 flex", [])
+
+    name = Module.safe_concat(CanonicalTailwind.Canonicalizer, "0")
+    stale_pid = GenServer.whereis(name)
+
+    # Simulate a prior cold start that registered workers but crashed before
+    # writing persistent terms.
+    for key <- [:ready, :counter, :size, :config, :fingerprint] do
+      :persistent_term.erase({CanonicalTailwind.Pool, key})
+    end
+
+    assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", []) == "p-3"
+    refute Process.alive?(stale_pid)
+  end
+
   test "raises when formatter opts change after the pool starts" do
     assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
 
