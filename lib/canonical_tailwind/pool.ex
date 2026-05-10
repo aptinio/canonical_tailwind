@@ -18,16 +18,50 @@ defmodule CanonicalTailwind.Pool do
 
   defp get_or_start_pool(opts) do
     if :persistent_term.get(@ready_key, false) do
-      tailwind_env = Application.get_all_env(:tailwind)
-      fingerprint = config_fingerprint(opts, tailwind_env)
-      validate_config_fingerprint!(fingerprint, opts, tailwind_env)
-      pick_server()
+      validate_config_and_pick!(opts)
     else
       start_pool!(opts)
     end
   end
 
   defp start_pool!(opts) do
+    # Serializes cold starts so workers cannot be registered with mixed configs.
+    :global.trans(cold_start_lock(), fn ->
+      if :persistent_term.get(@ready_key, false) do
+        validate_config_and_pick!(opts)
+      else
+        do_start_pool!(opts)
+      end
+    end)
+  end
+
+  defp cold_start_lock do
+    # `:global` allows shared locks for identical requester IDs, so use the
+    # caller pid as requester and a stable resource id for the pool.
+    {{__MODULE__, :cold_start}, self()}
+  end
+
+  defp validate_config_and_pick!(opts) do
+    tailwind_env = Application.get_all_env(:tailwind)
+    fingerprint = config_fingerprint(opts, tailwind_env)
+    validate_config_fingerprint!(fingerprint, opts, tailwind_env)
+    pick_server()
+  end
+
+  defp validate_config_fingerprint!(fingerprint, opts, tailwind_env) do
+    stored_fingerprint = :persistent_term.get(@fingerprint_key, nil)
+
+    unless stored_fingerprint == fingerprint do
+      previous_config = :persistent_term.get(@config_key)
+      new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
+
+      raise ArgumentError,
+            "different canonical_tailwind configuration detected after the pool started. " <>
+              "Previous config: #{inspect(previous_config)}. New config: #{inspect(new_config)}."
+    end
+  end
+
+  defp do_start_pool!(opts) do
     tailwind_env = Application.get_all_env(:tailwind)
     fingerprint = config_fingerprint(opts, tailwind_env)
     config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
@@ -50,16 +84,12 @@ defmodule CanonicalTailwind.Pool do
            _ -> nil
          end) do
       nil ->
-        if :persistent_term.get(@ready_key, false) do
-          validate_config_fingerprint!(fingerprint, opts, tailwind_env)
-        else
-          counter = :atomics.new(1, signed: false)
-          :persistent_term.put(@config_key, config)
-          :persistent_term.put(@fingerprint_key, fingerprint)
-          :persistent_term.put(@counter_key, counter)
-          :persistent_term.put(@size_key, pool_size)
-          :persistent_term.put(@ready_key, true)
-        end
+        counter = :atomics.new(1, signed: false)
+        :persistent_term.put(@config_key, config)
+        :persistent_term.put(@fingerprint_key, fingerprint)
+        :persistent_term.put(@counter_key, counter)
+        :persistent_term.put(@size_key, pool_size)
+        :persistent_term.put(@ready_key, true)
 
         pick_server()
 
@@ -70,19 +100,6 @@ defmodule CanonicalTailwind.Pool do
       error ->
         stop_all(pool_size)
         raise "failed to start canonicalizer pool: #{inspect(error)}"
-    end
-  end
-
-  defp validate_config_fingerprint!(fingerprint, opts, tailwind_env) do
-    stored_fingerprint = :persistent_term.get(@fingerprint_key, nil)
-
-    unless stored_fingerprint == fingerprint do
-      previous_config = :persistent_term.get(@config_key)
-      new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
-
-      raise ArgumentError,
-            "different canonical_tailwind configuration detected after the pool started. " <>
-              "Previous config: #{inspect(previous_config)}. New config: #{inspect(new_config)}."
     end
   end
 
@@ -120,15 +137,15 @@ defmodule CanonicalTailwind.Pool do
     end
   end
 
-  defp server_name(index) do
-    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-    Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
-  end
-
   defp stop_all(pool_size) do
     for i <- 0..(pool_size - 1) do
       name = server_name(i)
       if pid = GenServer.whereis(name), do: GenServer.stop(pid)
     end
+  end
+
+  defp server_name(index) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
   end
 end
