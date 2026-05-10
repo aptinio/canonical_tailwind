@@ -1,5 +1,9 @@
 # CanonicalTailwind
 
+[![CI](https://github.com/aptinio/canonical_tailwind/actions/workflows/ci.yml/badge.svg)](https://github.com/aptinio/canonical_tailwind/actions/workflows/ci.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/canonical_tailwind.svg)](https://hex.pm/packages/canonical_tailwind)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/canonical_tailwind/)
+
 Canonicalizes Tailwind CSS utility classes in HEEx templates via
 `mix format`.
 
