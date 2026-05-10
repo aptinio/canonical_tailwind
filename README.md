@@ -22,6 +22,11 @@ Unknown classes are preserved and sorted to the front.
 - Phoenix LiveView ~> 1.1 (for `attribute_formatters` support)
 - The `tailwindcss` CLI >= 4.2.2 (first version with `canonicalize`)
 
+The `:tailwind` package's default CLI version may lag this
+requirement. If startup reports an older Tailwind version, set
+`config :tailwind, version: "4.2.2"` (or newer) and run
+`mix tailwind.install`.
+
 ## Setup
 
 Add `canonical_tailwind` to your dependencies:
