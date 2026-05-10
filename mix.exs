@@ -49,7 +49,8 @@ defmodule CanonicalTailwind.MixProject do
       links: %{
         "GitHub" => @source_url,
         "Changelog" => "https://hexdocs.pm/canonical_tailwind/changelog.html"
-      }
+      },
+      files: ~w(lib mix.exs README.md CHANGELOG.md LICENSE)
     ]
   end
 
