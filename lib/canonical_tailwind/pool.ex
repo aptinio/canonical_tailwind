@@ -5,6 +5,7 @@ defmodule CanonicalTailwind.Pool do
   @counter_key {__MODULE__, :counter}
   @size_key {__MODULE__, :size}
   @config_key {__MODULE__, :config}
+  @fingerprint_key {__MODULE__, :fingerprint}
 
   def canonicalize(class_string, opts) do
     server = get_or_start_pool(opts)
@@ -17,6 +18,9 @@ defmodule CanonicalTailwind.Pool do
 
   defp get_or_start_pool(opts) do
     if :persistent_term.get(@ready_key, false) do
+      tailwind_env = Application.get_all_env(:tailwind)
+      fingerprint = config_fingerprint(opts, tailwind_env)
+      validate_config_fingerprint!(fingerprint, opts, tailwind_env)
       pick_server()
     else
       start_pool!(opts)
@@ -25,6 +29,7 @@ defmodule CanonicalTailwind.Pool do
 
   defp start_pool!(opts) do
     tailwind_env = Application.get_all_env(:tailwind)
+    fingerprint = config_fingerprint(opts, tailwind_env)
     config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
     pool_size = config.pool_size
 
@@ -45,9 +50,12 @@ defmodule CanonicalTailwind.Pool do
            _ -> nil
          end) do
       nil ->
-        unless :persistent_term.get(@ready_key, false) do
+        if :persistent_term.get(@ready_key, false) do
+          validate_config_fingerprint!(fingerprint, opts, tailwind_env)
+        else
           counter = :atomics.new(1, signed: false)
           :persistent_term.put(@config_key, config)
+          :persistent_term.put(@fingerprint_key, fingerprint)
           :persistent_term.put(@counter_key, counter)
           :persistent_term.put(@size_key, pool_size)
           :persistent_term.put(@ready_key, true)
@@ -63,6 +71,24 @@ defmodule CanonicalTailwind.Pool do
         stop_all(pool_size)
         raise "failed to start canonicalizer pool: #{inspect(error)}"
     end
+  end
+
+  defp validate_config_fingerprint!(fingerprint, opts, tailwind_env) do
+    stored_fingerprint = :persistent_term.get(@fingerprint_key, nil)
+
+    unless stored_fingerprint == fingerprint do
+      previous_config = :persistent_term.get(@config_key)
+      new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
+
+      raise ArgumentError,
+            "different canonical_tailwind configuration detected after the pool started. " <>
+              "Previous config: #{inspect(previous_config)}. New config: #{inspect(new_config)}."
+    end
+  end
+
+  defp config_fingerprint(formatter_opts, tailwind_env) do
+    canonical_tailwind_opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
+    :erlang.phash2({canonical_tailwind_opts, tailwind_env})
   end
 
   defp pick_server do

@@ -4,8 +4,14 @@ defmodule CanonicalTailwind.PoolTest do
   import CanonicalTailwind.PoolHelpers
 
   setup do
+    tailwind_env = Application.get_all_env(:tailwind)
+
     reset_pool!()
-    on_exit(&reset_pool!/0)
+
+    on_exit(fn ->
+      reset_pool!()
+      restore_tailwind_env(tailwind_env)
+    end)
   end
 
   test "restarts a missing worker before using it" do
@@ -24,5 +30,42 @@ defmodule CanonicalTailwind.PoolTest do
 
     assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", []) == "p-3"
     assert GenServer.whereis(name)
+  end
+
+  test "raises when formatter opts change after the pool starts" do
+    assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
+
+    assert_raise ArgumentError, ~r/different canonical_tailwind configuration/, fn ->
+      CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", canonical_tailwind: [pool_size: 1])
+    end
+  end
+
+  test "raises when tailwind application env changes after the pool starts" do
+    profile_config = Application.fetch_env!(:tailwind, :canonical_tailwind)
+    Application.delete_env(:tailwind, :canonical_tailwind)
+    Application.put_env(:tailwind, :my_app, profile_config)
+
+    assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
+
+    Application.put_env(:tailwind, :my_app,
+      args: ~w(--input=test/fixtures/input.css),
+      cd: File.cwd!(),
+      env: %{"FOO" => "bar"}
+    )
+
+    assert_raise ArgumentError, ~r/different canonical_tailwind configuration/, fn ->
+      CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", [])
+    end
+  end
+
+  defp restore_tailwind_env(tailwind_env) do
+    :tailwind
+    |> Application.get_all_env()
+    |> Keyword.keys()
+    |> Enum.each(&Application.delete_env(:tailwind, &1))
+
+    Enum.each(tailwind_env, fn {key, value} ->
+      Application.put_env(:tailwind, key, value)
+    end)
   end
 end
