@@ -1,5 +1,12 @@
 defmodule CanonicalTailwindTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+
+  import CanonicalTailwind.PoolHelpers
+
+  setup do
+    reset_pool!()
+    on_exit(&reset_pool!/0)
+  end
 
   test "render_attribute/2" do
     refute :persistent_term.get({CanonicalTailwind.Pool, :ready}, false)

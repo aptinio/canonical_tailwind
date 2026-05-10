@@ -4,10 +4,15 @@ defmodule CanonicalTailwind.Pool do
   @ready_key {__MODULE__, :ready}
   @counter_key {__MODULE__, :counter}
   @size_key {__MODULE__, :size}
+  @config_key {__MODULE__, :config}
 
   def canonicalize(class_string, opts) do
     server = get_or_start_pool(opts)
     GenServer.call(server, {:canonicalize, class_string}, :infinity)
+  catch
+    :exit, {:noproc, _} ->
+      server = pick_server()
+      GenServer.call(server, {:canonicalize, class_string}, :infinity)
   end
 
   defp get_or_start_pool(opts) do
@@ -28,12 +33,7 @@ defmodule CanonicalTailwind.Pool do
       |> Task.async_stream(
         fn i ->
           name = server_name(i)
-
-          case GenServer.start(CanonicalTailwind.Canonicalizer, config, name: name) do
-            {:ok, _pid} -> :ok
-            {:error, {:already_started, _pid}} -> :ok
-            {:error, {error, _stacktrace}} -> {:error, error}
-          end
+          start_server(name, config)
         end,
         timeout: :infinity
       )
@@ -47,6 +47,7 @@ defmodule CanonicalTailwind.Pool do
       nil ->
         unless :persistent_term.get(@ready_key, false) do
           counter = :atomics.new(1, signed: false)
+          :persistent_term.put(@config_key, config)
           :persistent_term.put(@counter_key, counter)
           :persistent_term.put(@size_key, pool_size)
           :persistent_term.put(@ready_key, true)
@@ -68,7 +69,29 @@ defmodule CanonicalTailwind.Pool do
     pool_size = :persistent_term.get(@size_key)
     counter = :persistent_term.get(@counter_key)
     index = :atomics.add_get(counter, 1, 1)
-    server_name(rem(index, pool_size))
+    name = server_name(rem(index, pool_size))
+    ensure_started(name)
+    name
+  end
+
+  defp ensure_started(name) do
+    unless GenServer.whereis(name) do
+      config = :persistent_term.get(@config_key)
+
+      case start_server(name, config) do
+        :ok -> :ok
+        {:error, %{__exception__: true} = error} -> raise error
+        {:error, error} -> raise "failed to start canonicalizer: #{inspect(error)}"
+      end
+    end
+  end
+
+  defp start_server(name, config) do
+    case GenServer.start(CanonicalTailwind.Canonicalizer, config, name: name) do
+      {:ok, _pid} -> :ok
+      {:error, {:already_started, _pid}} -> :ok
+      {:error, {error, _stacktrace}} -> {:error, error}
+    end
   end
 
   defp server_name(index) do
