@@ -1,6 +1,8 @@
 defmodule CanonicalTailwind.Config do
   @moduledoc false
 
+  @compile {:no_warn_undefined, Tailwind}
+
   @default_pool_size 6
   @default_timeout 30_000
   @minimum_version Version.parse!("4.2.2")
