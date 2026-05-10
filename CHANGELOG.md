@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.5 (2026-05-10)
+
+### Bug fixes
+  - [CanonicalTailwind.Pool] Recover missing canonicalizer workers, restoring long-running LSP sessions after a worker crash
+  - [CanonicalTailwind.Config] Locate tailwindcss binary under LSPs that isolate `_build/`, restoring on-save formatting under Expert and ElixirLS
+
+### Enhancements
+  - [CanonicalTailwind.Pool] Prevent mixed-config workers by serializing cold start and clearing stale workers from prior incomplete cold starts
+
+### Potential breaking changes
+  - [CanonicalTailwind.Pool] Raise on `canonical_tailwind` config drift after the pool has started — umbrella setups that previously formatted concurrently with different formatter opts will now get a loud error instead of silent stale-config behavior
+
 ## v0.1.4 (2026-04-01)
 
 ### Enhancements
