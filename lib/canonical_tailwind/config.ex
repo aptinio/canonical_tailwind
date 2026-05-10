@@ -62,14 +62,58 @@ defmodule CanonicalTailwind.Config do
   end
 
   defp resolve_bin_path! do
-    path = Tailwind.bin_path()
+    primary = Tailwind.bin_path()
+    override = Application.get_env(:tailwind, :path)
 
-    if System.find_executable(path) do
-      path
-    else
-      raise ArgumentError,
-            "tailwindcss binary is not installed. Run `mix tailwind.install`."
+    cond do
+      System.find_executable(primary) ->
+        primary
+
+      is_nil(override) ->
+        candidates = fallback_bin_paths()
+
+        Enum.find(candidates, &System.find_executable/1) ||
+          raise ArgumentError, not_found_error(primary, candidates)
+
+      true ->
+        raise ArgumentError,
+              "tailwindcss binary at #{primary} (from `:tailwind, :path`) does not exist or is not executable."
     end
+  end
+
+  # Recovers when an LSP isolates `_build/` and `Tailwind.bin_path/0` misses.
+  defp fallback_bin_paths do
+    name = "tailwind-#{Tailwind.configured_target()}"
+
+    candidates =
+      if Code.ensure_loaded?(Mix.Project) do
+        [
+          project_root(Mix.Project.parent_umbrella_project_file()),
+          project_root(Mix.Project.project_file()),
+          File.cwd!()
+        ]
+      else
+        [File.cwd!()]
+      end
+
+    candidates
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&Path.expand/1)
+    |> Enum.uniq()
+    |> Enum.map(&Path.join([&1, "_build", name]))
+  end
+
+  defp project_root(nil), do: nil
+  defp project_root(file), do: Path.dirname(file)
+
+  defp not_found_error(primary, candidates) do
+    paths =
+      [primary | candidates]
+      |> Enum.uniq()
+      |> Enum.map_join("\n  ", & &1)
+
+    "tailwindcss binary not found. Checked:\n  #{paths}\n\n" <>
+      "Run `mix tailwind.install`, or set `canonical_tailwind: [binary: ...]`."
   end
 
   defp profile_config!(opts, tailwind_env) do
