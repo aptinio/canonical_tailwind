@@ -49,23 +49,23 @@ jobs:
             deps-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}
 
       - run: mix deps.get
-      - run: mix clean
-      - run: mix deps.compile
-
-      - run: mix compile --warnings-as-errors
-        if: ${{ matrix.lint }}
-
-      - run: mix compile
-        if: ${{ !matrix.lint }}
-
-      - run: mix format --check-formatted
-        if: ${{ matrix.lint }}
 
       - run: mix deps.unlock --check-unused
         if: ${{ matrix.lint }}
 
       - run: mix hex.audit
         if: ${{ matrix.lint }}
+
+      - run: mix deps.compile
+
+      - run: mix format --check-formatted
+        if: ${{ matrix.lint }}
+
+      - run: mix compile --warnings-as-errors
+        if: ${{ matrix.lint }}
+
+      - run: mix compile
+        if: ${{ !matrix.lint }}
 
       - run: mix credo --format oneline
         if: ${{ matrix.lint }}
