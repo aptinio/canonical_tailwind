@@ -54,7 +54,7 @@ defmodule CanonicalTailwind.Config do
   end
 
   defp ensure_tailwind! do
-    unless Code.ensure_loaded?(Tailwind) do
+    if !Code.ensure_loaded?(Tailwind) do
       raise ArgumentError,
             "the :tailwind package is required but not available. " <>
               "Add {:tailwind, ...} to your deps, or set canonical_tailwind: [binary: ...] explicitly."
@@ -207,7 +207,7 @@ defmodule CanonicalTailwind.Config do
   defp validate_pool_size!(opts) do
     size = Keyword.get(opts, :pool_size, @default_pool_size)
 
-    unless is_integer(size) and size > 0 do
+    if !(is_integer(size) and size > 0) do
       raise ArgumentError,
             "expected :pool_size to be a positive integer, got: #{inspect(size)}."
     end
@@ -218,7 +218,7 @@ defmodule CanonicalTailwind.Config do
   defp validate_timeout!(opts) do
     timeout = Keyword.get(opts, :timeout, @default_timeout)
 
-    unless is_integer(timeout) and timeout > 0 do
+    if !(is_integer(timeout) and timeout > 0) do
       raise ArgumentError,
             "expected :timeout to be a positive integer, got: #{inspect(timeout)}."
     end
@@ -227,13 +227,13 @@ defmodule CanonicalTailwind.Config do
   end
 
   defp validate_cd!(cd) do
-    unless File.dir?(cd) do
+    if !File.dir?(cd) do
       raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
     end
   end
 
   defp validate_binary!(binary) do
-    unless System.find_executable(binary) do
+    if !System.find_executable(binary) do
       raise ArgumentError,
             "tailwindcss binary at #{binary} does not exist or is not executable."
     end

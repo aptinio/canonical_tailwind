@@ -3,5 +3,5 @@ Application.put_env(:tailwind, :canonical_tailwind,
   cd: Path.expand("..", __DIR__)
 )
 
-unless File.exists?(Tailwind.bin_path()), do: Tailwind.install()
+if !File.exists?(Tailwind.bin_path()), do: Tailwind.install()
 ExUnit.start()

@@ -11,8 +11,7 @@ defmodule CanonicalTailwind.ConfigLSPTest do
   end
 
   defmodule FakeUmbrella do
-    def project,
-      do: [app: :canonical_tailwind_umbrella_sim, version: "0.0.1", apps_path: "apps"]
+    def project, do: [app: :canonical_tailwind_umbrella_sim, version: "0.0.1", apps_path: "apps"]
   end
 
   describe "LSP fallback" do

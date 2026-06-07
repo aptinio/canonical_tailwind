@@ -51,7 +51,7 @@ defmodule CanonicalTailwind.Pool do
   defp validate_config_fingerprint!(fingerprint, opts, tailwind_env) do
     stored_fingerprint = :persistent_term.get(@fingerprint_key, nil)
 
-    unless stored_fingerprint == fingerprint do
+    if stored_fingerprint != fingerprint do
       previous_config = :persistent_term.get(@config_key)
       new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
 
@@ -135,7 +135,7 @@ defmodule CanonicalTailwind.Pool do
   end
 
   defp ensure_started(name) do
-    unless GenServer.whereis(name) do
+    if !GenServer.whereis(name) do
       config = :persistent_term.get(@config_key)
 
       case start_server(name, config) do
