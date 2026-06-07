@@ -3,8 +3,7 @@
     %{
       name: "default",
       files: %{
-        included: ["lib/", "test/"],
-        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
+        included: ["lib/", "test/"]
       },
       plugins: [],
       requires: [],
@@ -63,7 +62,6 @@
           {Credo.Check.Refactor.AppendSingleItem, []},
           {Credo.Check.Refactor.Apply, []},
           {Credo.Check.Refactor.CondStatements, []},
-          {Credo.Check.Refactor.CyclomaticComplexity, []},
           {Credo.Check.Refactor.DoubleBooleanNegation, []},
           {Credo.Check.Refactor.FilterCount, []},
           {Credo.Check.Refactor.FilterFilter, []},
@@ -79,6 +77,7 @@
           {Credo.Check.Refactor.NegatedIsNil, []},
           {Credo.Check.Refactor.Nesting, []},
           {Credo.Check.Refactor.PassAsyncInTestCases, []},
+          {Credo.Check.Refactor.PerceivedComplexity, []},
           {Credo.Check.Refactor.PipeChainStart, []},
           {Credo.Check.Refactor.RedundantWithClauseResult, []},
           {Credo.Check.Refactor.RejectFilter, []},
@@ -114,21 +113,50 @@
           {Credo.Check.Warning.UnusedRegexOperation, []},
           {Credo.Check.Warning.UnusedStringOperation, []},
           {Credo.Check.Warning.UnusedTupleOperation, []},
-          {Credo.Check.Warning.WrongTestFileExtension, []}
+          {Credo.Check.Warning.WrongTestFileExtension, []},
+          {Credo.Check.Warning.WrongTestFilename, []}
         ],
+        # Reviewed and parked. enabled ∪ disabled covers every check Credo ships, so a
+        # version bump surfaces only genuinely new checks. Each line notes why it's off.
         disabled: [
+          # don't enforce one unused-var naming style
           {Credo.Check.Consistency.UnusedVariableNames, []},
+          # noisy / false positives
           {Credo.Check.Design.DuplicatedCode, []},
+          # don't require a comment to skip a test
           {Credo.Check.Design.SkipTestWithoutComment, []},
+          # allow `alias X, as: Y`
           {Credo.Check.Readability.AliasAs, []},
+          # pipe-style preference
           {Credo.Check.Readability.BlockPipe, []},
+          # pipe-style preference
           {Credo.Check.Readability.OneArityFunctionInPipe, []},
+          # inert: version-gated < 1.7.0
+          {Credo.Check.Readability.PreferUnquotedAtoms, []},
+          # pipe-style preference
           {Credo.Check.Readability.SingleFunctionToBlockPipe, []},
+          # don't mandate @spec (types out of scope)
           {Credo.Check.Readability.Specs, []},
+          # redundant with PerceivedComplexity
           {Credo.Check.Refactor.ABCSize, []},
+          # deprecated upstream
+          {Credo.Check.Refactor.CaseTrivialMatches, []},
+          # conflicts with enabled CondStatements
+          {Credo.Check.Refactor.CondInsteadOfIfElse, []},
+          # superseded by PerceivedComplexity (same metric, discounts flat `case` dispatch)
+          {Credo.Check.Refactor.CyclomaticComplexity, []},
+          # inert: version-gated < 1.8.0
+          {Credo.Check.Refactor.MapInto, []},
+          # noisy / architectural
           {Credo.Check.Refactor.ModuleDependencies, []},
+          # rebinding is idiomatic
           {Credo.Check.Refactor.VariableRebinding, []},
-          {Credo.Check.Warning.LazyLogging, []}
+          # inert without a :modules param
+          {Credo.Check.Warning.ForbiddenModule, []},
+          # inert: version-gated < 1.7.0
+          {Credo.Check.Warning.LazyLogging, []},
+          # base for the specific Unused*Operation checks
+          {Credo.Check.Warning.UnusedOperation, []}
         ]
       }
     }
