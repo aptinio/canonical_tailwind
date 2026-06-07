@@ -9,23 +9,6 @@ defmodule CanonicalTailwind.Canonicalizer do
     {:ok, %{port: port, timeout: config.timeout}}
   end
 
-  @impl GenServer
-  def handle_call({:canonicalize, class_string}, _from, state) do
-    Port.command(state.port, [class_string, ?\n])
-    result = receive_line(state.port, state.timeout)
-    {:reply, result, state}
-  end
-
-  @impl GenServer
-  def handle_info({port, {:data, _}}, %{port: port} = state) do
-    {:noreply, state}
-  end
-
-  @impl GenServer
-  def terminate(_reason, state) do
-    if Port.info(state.port), do: Port.close(state.port)
-  end
-
   defp open_port(config) do
     port_opts = [
       :binary,
@@ -36,6 +19,13 @@ defmodule CanonicalTailwind.Canonicalizer do
     ]
 
     Port.open({:spawn_executable, config.binary}, port_opts)
+  end
+
+  @impl GenServer
+  def handle_call({:canonicalize, class_string}, _from, state) do
+    Port.command(state.port, [class_string, ?\n])
+    result = receive_line(state.port, state.timeout)
+    {:reply, result, state}
   end
 
   defp receive_line(port, timeout) do
@@ -55,5 +45,15 @@ defmodule CanonicalTailwind.Canonicalizer do
       timeout ->
         raise "tailwindcss CLI did not respond within #{timeout}ms"
     end
+  end
+
+  @impl GenServer
+  def handle_info({port, {:data, _}}, %{port: port} = state) do
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def terminate(_reason, state) do
+    if Port.info(state.port), do: Port.close(state.port)
   end
 end

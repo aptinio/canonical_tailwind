@@ -4,6 +4,16 @@ defmodule CanonicalTailwind.MixProject do
   @version "0.1.5"
   @source_url "https://github.com/aptinio/canonical_tailwind"
 
+  def application do
+    [
+      extra_applications: [:logger]
+    ]
+  end
+
+  def cli do
+    [preferred_envs: [precommit: :test]]
+  end
+
   def project do
     [
       app: :canonical_tailwind,
@@ -19,26 +29,29 @@ defmodule CanonicalTailwind.MixProject do
     ]
   end
 
-  def cli do
-    [preferred_envs: [precommit: :test]]
-  end
-
-  def application do
-    [
-      extra_applications: [:logger]
-    ]
-  end
-
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp docs do
+  defp deps do
     [
-      main: "readme",
-      source_ref: "v#{@version}",
-      source_url: @source_url,
-      extras: ["README.md", "CHANGELOG.md"],
-      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
+      {:tailwind, "~> 0.3", optional: true},
+      {:ex_doc, "~> 0.40.3", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:def_layout, "~> 0.1.0", only: [:dev, :test], runtime: false},
+      {:quokka, "~> 2.13", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      precommit: [
+        "deps.unlock --unused",
+        "hex.audit",
+        "format",
+        "compile --warnings-as-errors",
+        "credo --format oneline",
+        "test --cover"
+      ]
     ]
   end
 
@@ -54,25 +67,13 @@ defmodule CanonicalTailwind.MixProject do
     ]
   end
 
-  defp deps do
+  defp docs do
     [
-      {:tailwind, "~> 0.3", optional: true},
-      {:ex_doc, "~> 0.40.3", only: :dev, runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:quokka, "~> 2.13", only: [:dev, :test], runtime: false}
-    ]
-  end
-
-  defp aliases do
-    [
-      precommit: [
-        "deps.unlock --unused",
-        "hex.audit",
-        "format",
-        "compile --warnings-as-errors",
-        "credo --format oneline",
-        "test --cover"
-      ]
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      extras: ["README.md", "CHANGELOG.md"],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end

@@ -41,6 +41,28 @@ defmodule CanonicalTailwind.Config do
     }
   end
 
+  defp validate_pool_size!(opts) do
+    size = Keyword.get(opts, :pool_size, @default_pool_size)
+
+    if !(is_integer(size) and size > 0) do
+      raise ArgumentError,
+            "expected :pool_size to be a positive integer, got: #{inspect(size)}."
+    end
+
+    size
+  end
+
+  defp validate_timeout!(opts) do
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
+
+    if !(is_integer(timeout) and timeout > 0) do
+      raise ArgumentError,
+            "expected :timeout to be a positive integer, got: #{inspect(timeout)}."
+    end
+
+    timeout
+  end
+
   defp resolve_binary!(opts, tailwind_env) do
     case Keyword.get(opts, :binary) do
       nil ->
@@ -159,6 +181,19 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
+  defp validate_cd!(cd) do
+    if !File.dir?(cd) do
+      raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
+    end
+  end
+
+  defp validate_binary!(binary) do
+    if !System.find_executable(binary) do
+      raise ArgumentError,
+            "tailwindcss binary at #{binary} does not exist or is not executable."
+    end
+  end
+
   defp ensure_minimum_version!(binary, opts) do
     version = detect_cli_version(binary)
 
@@ -203,39 +238,4 @@ defmodule CanonicalTailwind.Config do
 
   defp extract_input("--input=" <> path), do: path
   defp extract_input(_), do: nil
-
-  defp validate_pool_size!(opts) do
-    size = Keyword.get(opts, :pool_size, @default_pool_size)
-
-    if !(is_integer(size) and size > 0) do
-      raise ArgumentError,
-            "expected :pool_size to be a positive integer, got: #{inspect(size)}."
-    end
-
-    size
-  end
-
-  defp validate_timeout!(opts) do
-    timeout = Keyword.get(opts, :timeout, @default_timeout)
-
-    if !(is_integer(timeout) and timeout > 0) do
-      raise ArgumentError,
-            "expected :timeout to be a positive integer, got: #{inspect(timeout)}."
-    end
-
-    timeout
-  end
-
-  defp validate_cd!(cd) do
-    if !File.dir?(cd) do
-      raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
-    end
-  end
-
-  defp validate_binary!(binary) do
-    if !System.find_executable(binary) do
-      raise ArgumentError,
-            "tailwindcss binary at #{binary} does not exist or is not executable."
-    end
-  end
 end
