@@ -52,8 +52,13 @@ defmodule CanonicalTailwind.Pool do
       new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
 
       raise ArgumentError,
-            "different canonical_tailwind configuration detected after the pool started. " <>
-              "Previous config: #{inspect(previous_config)}. New config: #{inspect(new_config)}."
+            "different canonical_tailwind configuration detected after the pool started.\n\n" <>
+              "Previous config:\n#{inspect(previous_config, pretty: true)}\n\n" <>
+              "New config:\n#{inspect(new_config, pretty: true)}\n\n" <>
+              "A single mix format run shares one CLI pool, so every app it formats must use " <>
+              "the same canonical_tailwind configuration. Run mix format in each app separately " <>
+              "so each gets its own pool, or open an issue if you need differing configurations " <>
+              "in one run."
     end
   end
 

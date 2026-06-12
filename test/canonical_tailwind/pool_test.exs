@@ -51,9 +51,13 @@ defmodule CanonicalTailwind.PoolTest do
   test "raises when formatter opts change after the pool starts" do
     assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
 
-    assert_raise ArgumentError, ~r/different canonical_tailwind configuration/, fn ->
-      CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", canonical_tailwind: [pool_size: 1])
-    end
+    error =
+      assert_raise ArgumentError, fn ->
+        CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", canonical_tailwind: [pool_size: 1])
+      end
+
+    assert error.message =~ "different canonical_tailwind configuration"
+    assert error.message =~ "mix format in each app separately"
   end
 
   test "raises when tailwind application env changes after the pool starts" do
