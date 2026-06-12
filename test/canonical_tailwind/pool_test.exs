@@ -74,6 +74,36 @@ defmodule CanonicalTailwind.PoolTest do
     end
   end
 
+  @tag capture_log: true
+  test "surfaces a crashing worker as a clear error rather than an opaque exit" do
+    binary = Path.expand("../fixtures/tailwindcss-dies-mid-request", __DIR__)
+    opts = [canonical_tailwind: [binary: binary, cd: File.cwd!(), pool_size: 1]]
+
+    assert_raise RuntimeError, ~r/exited.*before responding/s, fn ->
+      CanonicalTailwind.Pool.canonicalize("p-0 flex", opts)
+    end
+  end
+
+  test "retries on a fresh worker when one stops on idle CLI death mid-call" do
+    opts = [canonical_tailwind: [pool_size: 1]]
+    assert CanonicalTailwind.Pool.canonicalize("p-0 flex", opts) == "flex p-0"
+
+    name = Module.safe_concat(CanonicalTailwind.Canonicalizer, "0")
+    pid = GenServer.whereis(name)
+    port = :sys.get_state(pid).port
+
+    # Stage the pick-to-call race: queue an idle-death exit status ahead of the
+    # in-flight call so the worker stops with {:shutdown, {:cli_exited, _}}
+    # *while the call is waiting on it*, then resume to let it process both.
+    :sys.suspend(pid)
+    send(pid, {port, {:exit_status, 0}})
+    task = Task.async(fn -> CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", opts) end)
+    Process.sleep(50)
+    :sys.resume(pid)
+
+    assert Task.await(task) == "p-3"
+  end
+
   defp restore_tailwind_env(tailwind_env) do
     :tailwind
     |> Application.get_all_env()

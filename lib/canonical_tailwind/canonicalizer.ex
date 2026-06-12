@@ -12,6 +12,7 @@ defmodule CanonicalTailwind.Canonicalizer do
   defp open_port(config) do
     port_opts = [
       :binary,
+      :exit_status,
       :use_stdio,
       {:line, 65_536},
       {:cd, to_charlist(config.cd)},
@@ -41,15 +42,24 @@ defmodule CanonicalTailwind.Canonicalizer do
 
       {^port, {:data, {:noeol, data}}} ->
         receive_line(port, [data | acc], timeout)
+
+      {^port, {:exit_status, status}} ->
+        raise "tailwindcss CLI exited (status #{status}) before responding"
     after
       timeout ->
-        raise "tailwindcss CLI did not respond within #{timeout}ms"
+        raise "tailwindcss CLI did not respond within #{timeout}ms. " <>
+                "Increase the limit with `canonical_tailwind: [timeout: ...]` " <>
+                "in your formatter options if this is a slow environment."
     end
   end
 
   @impl GenServer
   def handle_info({port, {:data, _}}, %{port: port} = state) do
     {:noreply, state}
+  end
+
+  def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
+    {:stop, {:shutdown, {:cli_exited, status}}, state}
   end
 
   @impl GenServer

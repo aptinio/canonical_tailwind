@@ -1,0 +1,8 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI that starts up, then exits while idle (no request sent).
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+sleep 0.2
+exit 0

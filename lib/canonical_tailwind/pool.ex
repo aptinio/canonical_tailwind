@@ -9,11 +9,7 @@ defmodule CanonicalTailwind.Pool do
 
   def canonicalize(class_string, opts) do
     server = get_or_start_pool(opts)
-    GenServer.call(server, {:canonicalize, class_string}, :infinity)
-  catch
-    :exit, {:noproc, _} ->
-      server = pick_server()
-      GenServer.call(server, {:canonicalize, class_string}, :infinity)
+    call(server, class_string, _retry? = true)
   end
 
   defp get_or_start_pool(opts) do
@@ -125,6 +121,30 @@ defmodule CanonicalTailwind.Pool do
     :erlang.phash2({canonical_tailwind_opts, tailwind_env})
   end
 
+  defp stop_all(pool_size) do
+    for i <- 0..(pool_size - 1) do
+      name = server_name(i)
+      if pid = GenServer.whereis(name), do: GenServer.stop(pid)
+    end
+  end
+
+  # A worker that vanished around call time, never started (`:noproc`) or
+  # self-stopped on idle CLI death between the pick and the call, is a transient
+  # miss: retry once on a fresh worker. Any other crash, or a second vanish on the
+  # retry, surfaces as a readable error rather than an opaque `GenServer.call` exit.
+  defp call(server, class_string, retry?) do
+    GenServer.call(server, {:canonicalize, class_string}, :infinity)
+  catch
+    :exit, {:noproc, {GenServer, :call, _}} when retry? ->
+      call(pick_server(), class_string, false)
+
+    :exit, {{:shutdown, {:cli_exited, _}}, {GenServer, :call, _}} when retry? ->
+      call(pick_server(), class_string, false)
+
+    :exit, {reason, {GenServer, :call, _}} ->
+      raise worker_error(reason)
+  end
+
   defp pick_server do
     pool_size = :persistent_term.get(@size_key)
     counter = :persistent_term.get(@counter_key)
@@ -132,6 +152,11 @@ defmodule CanonicalTailwind.Pool do
     name = server_name(rem(index, pool_size))
     ensure_started(name)
     name
+  end
+
+  defp server_name(index) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
   end
 
   defp ensure_started(name) do
@@ -154,15 +179,9 @@ defmodule CanonicalTailwind.Pool do
     end
   end
 
-  defp stop_all(pool_size) do
-    for i <- 0..(pool_size - 1) do
-      name = server_name(i)
-      if pid = GenServer.whereis(name), do: GenServer.stop(pid)
-    end
-  end
+  defp worker_error({%{__exception__: true} = exception, _stacktrace}), do: exception
 
-  defp server_name(index) do
-    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-    Module.concat(CanonicalTailwind.Canonicalizer, "#{index}")
+  defp worker_error(reason) do
+    RuntimeError.exception("the tailwindcss canonicalizer worker crashed: #{inspect(reason)}")
   end
 end

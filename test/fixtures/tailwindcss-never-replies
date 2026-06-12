@@ -1,0 +1,7 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI that accepts input but never writes a response.
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+cat > /dev/null

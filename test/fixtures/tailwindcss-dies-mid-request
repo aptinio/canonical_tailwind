@@ -1,0 +1,8 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI that exits after reading a request but before replying.
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+read -r _line
+exit 0
