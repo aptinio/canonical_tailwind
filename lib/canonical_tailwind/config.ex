@@ -67,8 +67,9 @@ defmodule CanonicalTailwind.Config do
     case Keyword.get(opts, :binary) do
       nil ->
         ensure_tailwind!()
-        binary = resolve_bin_path!()
-        {binary, profile_config!(opts, tailwind_env)}
+        profile = detect_profile!(opts, tailwind_env)
+        profile_config = profile_config!(profile, tailwind_env)
+        {resolve_bin_path!(profile), profile_config}
 
       path ->
         {path, []}
@@ -81,68 +82,6 @@ defmodule CanonicalTailwind.Config do
             "the :tailwind package is required but not available. " <>
               "Add {:tailwind, ...} to your deps, or set canonical_tailwind: [binary: ...] explicitly."
     end
-  end
-
-  defp resolve_bin_path! do
-    primary = Tailwind.bin_path()
-    override = Application.get_env(:tailwind, :path)
-
-    cond do
-      System.find_executable(primary) ->
-        primary
-
-      is_nil(override) ->
-        candidates = fallback_bin_paths()
-
-        Enum.find(candidates, &System.find_executable/1) ||
-          raise ArgumentError, not_found_error(primary, candidates)
-
-      true ->
-        raise ArgumentError,
-              "tailwindcss binary at #{primary} (from `:tailwind, :path`) does not exist or is not executable."
-    end
-  end
-
-  # Recovers when an LSP isolates `_build/` and `Tailwind.bin_path/0` misses.
-  defp fallback_bin_paths do
-    name = "tailwind-#{Tailwind.configured_target()}"
-
-    candidates =
-      if Code.ensure_loaded?(Mix.Project) do
-        [
-          project_root(Mix.Project.parent_umbrella_project_file()),
-          project_root(Mix.Project.project_file()),
-          File.cwd!()
-        ]
-      else
-        [File.cwd!()]
-      end
-
-    candidates
-    |> Enum.reject(&is_nil/1)
-    |> Enum.map(&Path.expand/1)
-    |> Enum.uniq()
-    |> Enum.map(&Path.join([&1, "_build", name]))
-  end
-
-  defp project_root(nil), do: nil
-  defp project_root(file), do: Path.dirname(file)
-
-  defp not_found_error(primary, candidates) do
-    paths =
-      [primary | candidates]
-      |> Enum.uniq()
-      |> Enum.map_join("\n  ", & &1)
-
-    "tailwindcss binary not found. Checked:\n  #{paths}\n\n" <>
-      "Run `mix tailwind.install`, or set `canonical_tailwind: [binary: ...]`."
-  end
-
-  defp profile_config!(opts, tailwind_env) do
-    profile = detect_profile!(opts, tailwind_env)
-
-    Keyword.get(tailwind_env, profile) ||
-      raise ArgumentError, "unknown tailwind profile: #{inspect(profile)}."
   end
 
   defp detect_profile!(opts, tailwind_env) do
@@ -172,6 +111,90 @@ defmodule CanonicalTailwind.Config do
               "multiple tailwind profiles found: #{inspect(names)}. " <>
                 "Set canonical_tailwind: [profile: :name] in your formatter options."
     end
+  end
+
+  defp profile_config!(profile, tailwind_env) do
+    config = Keyword.get(tailwind_env, profile)
+
+    if Keyword.keyword?(config) and config != [] do
+      config
+    else
+      raise ArgumentError, "unknown tailwind profile: #{inspect(profile)}."
+    end
+  end
+
+  defp resolve_bin_path!(profile) do
+    primary = profile_bin_path(profile)
+    override = Application.get_env(:tailwind, :path)
+
+    cond do
+      System.find_executable(primary) ->
+        primary
+
+      is_nil(override) ->
+        candidates = fallback_bin_paths(profile)
+
+        Enum.find(candidates, &System.find_executable/1) ||
+          raise ArgumentError, not_found_error(primary, candidates)
+
+      true ->
+        raise ArgumentError,
+              "tailwindcss binary at #{primary} (from `:tailwind, :path`) does not exist or is not executable."
+    end
+  end
+
+  # Recovers when an LSP isolates `_build/` and `profile_bin_path/1` misses.
+  # Take the basename of the resolved path rather than rebuilding it, so the
+  # lookup tracks the package's naming (e.g. tailwind 0.5.0 version-suffixes it).
+  defp fallback_bin_paths(profile) do
+    name =
+      profile
+      |> profile_bin_path()
+      |> Path.basename()
+
+    candidates =
+      if Code.ensure_loaded?(Mix.Project) do
+        [
+          project_root(Mix.Project.parent_umbrella_project_file()),
+          project_root(Mix.Project.project_file()),
+          File.cwd!()
+        ]
+      else
+        [File.cwd!()]
+      end
+
+    candidates
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&Path.expand/1)
+    |> Enum.uniq()
+    |> Enum.map(&Path.join([&1, "_build", name]))
+  end
+
+  # tailwind 0.5.0 pins a `:version` per profile and version-suffixes the binary
+  # (tailwind-<target>-<version>). Resolve for the selected profile so a profile
+  # pinning a non-default version gets its own binary. On 0.4.x (no per-profile
+  # versions) the arity-1 API is absent, so fall back to the global path.
+  defp profile_bin_path(profile) do
+    if function_exported?(Tailwind, :configured_version, 1) do
+      profile
+      |> Tailwind.configured_version()
+      |> Tailwind.bin_path()
+    else
+      Tailwind.bin_path()
+    end
+  end
+
+  defp project_root(nil), do: nil
+  defp project_root(file), do: Path.dirname(file)
+
+  defp not_found_error(primary, candidates) do
+    paths =
+      [primary | candidates]
+      |> Enum.uniq()
+      |> Enum.map_join("\n  ", & &1)
+
+    "tailwindcss binary not found. Checked:\n  #{paths}\n\n" <>
+      "Run `mix tailwind.install`, or set `canonical_tailwind: [binary: ...]`."
   end
 
   defp resolve_cd!(opts, profile_config) do

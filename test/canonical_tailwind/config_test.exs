@@ -122,6 +122,12 @@ defmodule CanonicalTailwind.ConfigTest do
         resolve_with_env([other: @profile_config], profile: :nonexistent)
       end
     end
+
+    test "rejects an explicit profile naming a non-keyword global key" do
+      assert_raise ArgumentError, ~r/unknown tailwind profile/, fn ->
+        resolve_with_env([version: "4.2.2", real: @profile_config], profile: :version)
+      end
+    end
   end
 
   describe ":pool_size" do

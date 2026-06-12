@@ -105,6 +105,22 @@ defmodule CanonicalTailwind.ConfigLSPTest do
     end
   end
 
+  describe ":profile" do
+    test "resolves the binary for its pinned version" do
+      installed = Tailwind.configured_version()
+      profile = [args: ~w(--output=/dev/null), cd: File.cwd!(), version: installed]
+
+      with_app_env(:tailwind, :version, "9.9.9", fn ->
+        with_app_env(:tailwind, :pinned, profile, fn ->
+          env = Application.get_all_env(:tailwind)
+          config = Config.resolve!([canonical_tailwind: [profile: :pinned]], env)
+
+          assert config.binary == Tailwind.bin_path(installed)
+        end)
+      end)
+    end
+  end
+
   defp tailwind_env do
     [default: [args: ~w(--input=test/fixtures/input.css --output=/dev/null), cd: File.cwd!()]]
   end
