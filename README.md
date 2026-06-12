@@ -146,6 +146,21 @@ determining canonical forms.
 ]
 ```
 
+### Other attributes
+
+The `attribute_formatters` key maps attribute names to formatters, so
+any attribute holding Tailwind classes can be canonicalized. Register
+each one the same way as `class`:
+
+```elixir
+# .formatter.exs
+[
+  plugins: [Phoenix.LiveView.HTMLFormatter],
+  attribute_formatters: %{class: CanonicalTailwind, "data-class": CanonicalTailwind},
+  # ...
+]
+```
+
 ## Background
 
 Built by a contributor to
