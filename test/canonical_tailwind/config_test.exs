@@ -128,6 +128,18 @@ defmodule CanonicalTailwind.ConfigTest do
         resolve_with_env([version: "4.2.2", real: @profile_config], profile: :version)
       end
     end
+
+    test "ignores non-keyword :tailwind global keys when auto-detecting" do
+      assert_raise ArgumentError, ~r/no tailwind profiles found/, fn ->
+        Config.resolve!([], some_future_global: true)
+      end
+    end
+
+    test "ignores a non-keyword list :tailwind global when auto-detecting" do
+      config = resolve_with_env(targets: ["linux-x64"], real: @profile_config)
+
+      assert config.cd == @project_root
+    end
   end
 
   describe ":pool_size" do

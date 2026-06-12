@@ -95,7 +95,9 @@ defmodule CanonicalTailwind.Config do
     profiles =
       tailwind_env
       |> Keyword.drop(@non_profile_keys)
-      |> Enum.reject(fn {_name, profile_config} -> profile_config == [] end)
+      |> Enum.filter(fn {_name, profile_config} ->
+        Keyword.keyword?(profile_config) and profile_config != []
+      end)
 
     case profiles do
       [] ->
