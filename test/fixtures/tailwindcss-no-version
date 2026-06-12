@@ -1,0 +1,3 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI whose --help output carries no parseable version.
+echo "usage: tailwindcss [options]"

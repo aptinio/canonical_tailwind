@@ -97,6 +97,12 @@ defmodule CanonicalTailwindTest do
       ~S/"flex p-0 bg-#{@color}"/
     )
 
+    # expr: interpolation: a word bounded by interpolations on both sides
+    canonicalize_expr(
+      ~S/"#{@a}-x-#{@b}"/,
+      ~S/"#{@a}-x-#{@b}"/
+    )
+
     # expr: interpolation: multiple
     canonicalize_expr(
       ~S/"p-0 flex #{@a} #{@b}"/,

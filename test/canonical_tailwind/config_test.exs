@@ -51,6 +51,13 @@ defmodule CanonicalTailwind.ConfigTest do
       end
     end
 
+    test "skips the version check when the version can't be parsed" do
+      binary = Path.expand("../fixtures/tailwindcss-no-version", __DIR__)
+      config = resolve!(binary: binary, cd: ".")
+
+      assert config.binary == binary
+    end
+
     test "must be executable" do
       assert_raise ArgumentError, ~r/does not exist or is not executable/, fn ->
         resolve!(binary: "/nonexistent/tailwindcss")
