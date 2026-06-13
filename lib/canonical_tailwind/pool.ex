@@ -5,7 +5,7 @@ defmodule CanonicalTailwind.Pool do
   @counter_key {__MODULE__, :counter}
   @size_key {__MODULE__, :size}
   @config_key {__MODULE__, :config}
-  @fingerprint_key {__MODULE__, :fingerprint}
+  @fingerprints_key {__MODULE__, :fingerprints}
 
   def canonicalize(class_string, opts) do
     server = get_or_start_pool(opts)
@@ -40,20 +40,29 @@ defmodule CanonicalTailwind.Pool do
   defp validate_config_and_pick!(opts) do
     tailwind_env = Application.get_all_env(:tailwind)
     fingerprint = config_fingerprint(opts, tailwind_env)
-    validate_config_fingerprint!(fingerprint, opts, tailwind_env)
+    fingerprints = :persistent_term.get(@fingerprints_key)
+
+    if !MapSet.member?(fingerprints, fingerprint) do
+      reconcile_config!(fingerprints, fingerprint, opts, tailwind_env)
+    end
+
     pick_server()
   end
 
-  defp validate_config_fingerprint!(fingerprint, opts, tailwind_env) do
-    stored_fingerprint = :persistent_term.get(@fingerprint_key, nil)
+  # A fingerprint miss means the raw opts/env differ, not necessarily the resolved
+  # config: immaterial :tailwind keys (e.g. :version_check) perturb the fingerprint
+  # but not the binary, args, or cd. Caching the also-valid fingerprint avoids
+  # re-resolving (a shell-out) per attribute.
+  defp reconcile_config!(fingerprints, fingerprint, opts, tailwind_env) do
+    stored_config = :persistent_term.get(@config_key)
+    new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
 
-    if stored_fingerprint != fingerprint do
-      previous_config = :persistent_term.get(@config_key)
-      new_config = CanonicalTailwind.Config.resolve!(opts, tailwind_env)
-
+    if new_config == stored_config do
+      :persistent_term.put(@fingerprints_key, MapSet.put(fingerprints, fingerprint))
+    else
       raise ArgumentError,
             "different canonical_tailwind configuration detected after the pool started.\n\n" <>
-              "Previous config:\n#{inspect(previous_config, pretty: true)}\n\n" <>
+              "Previous config:\n#{inspect(stored_config, pretty: true)}\n\n" <>
               "New config:\n#{inspect(new_config, pretty: true)}\n\n" <>
               "A single mix format run shares one CLI pool, so every app it formats must use " <>
               "the same canonical_tailwind configuration. Run mix format in each app separately " <>
@@ -92,7 +101,7 @@ defmodule CanonicalTailwind.Pool do
       nil ->
         counter = :atomics.new(1, signed: false)
         :persistent_term.put(@config_key, config)
-        :persistent_term.put(@fingerprint_key, fingerprint)
+        :persistent_term.put(@fingerprints_key, MapSet.new([fingerprint]))
         :persistent_term.put(@counter_key, counter)
         :persistent_term.put(@size_key, pool_size)
         :persistent_term.put(@ready_key, true)

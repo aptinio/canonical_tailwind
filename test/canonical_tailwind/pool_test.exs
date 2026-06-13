@@ -40,7 +40,7 @@ defmodule CanonicalTailwind.PoolTest do
 
     # Simulate a prior cold start that registered workers but crashed before
     # writing persistent terms.
-    for key <- [:ready, :counter, :size, :config, :fingerprint] do
+    for key <- [:ready, :counter, :size, :config, :fingerprints] do
       :persistent_term.erase({CanonicalTailwind.Pool, key})
     end
 
@@ -68,14 +68,27 @@ defmodule CanonicalTailwind.PoolTest do
     assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
 
     Application.put_env(:tailwind, :my_app,
-      args: ~w(--input=test/fixtures/input.css),
-      cd: File.cwd!(),
-      env: %{"FOO" => "bar"}
+      args: ~w(--input=test/fixtures/other.css),
+      cd: File.cwd!()
     )
 
     assert_raise ArgumentError, ~r/different canonical_tailwind configuration/, fn ->
       CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", [])
     end
+  end
+
+  test "tolerates a tailwind env change that resolves to the same config" do
+    assert CanonicalTailwind.Pool.canonicalize("p-0 flex", []) == "flex p-0"
+
+    # :version_check is a :tailwind-package key we never read: it perturbs the
+    # config fingerprint without changing the resolved binary, args, or cd.
+    Application.put_env(:tailwind, :version_check, false)
+
+    assert CanonicalTailwind.Pool.canonicalize("py-3 p-1 px-3", []) == "p-3"
+
+    # The new fingerprint is recorded as also-valid so it isn't re-resolved.
+    fingerprints = :persistent_term.get({CanonicalTailwind.Pool, :fingerprints})
+    assert MapSet.size(fingerprints) == 2
   end
 
   @tag capture_log: true

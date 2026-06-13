@@ -1,7 +1,7 @@
 defmodule CanonicalTailwind.PoolHelpers do
   @moduledoc false
 
-  @pool_keys [:ready, :counter, :size, :config, :fingerprint]
+  @pool_keys [:ready, :counter, :size, :config, :fingerprints]
 
   def reset_pool! do
     Process.registered()
