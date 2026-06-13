@@ -15,11 +15,12 @@ concurrency:
 
 jobs:
   test:
-    name: OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }}
+    name: OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }} / tailwind ${{ matrix.tailwind }}
     runs-on: ubuntu-24.04
 
     env:
       MIX_ENV: test
+      TAILWIND_VERSION: ${{ matrix.tailwind }}
 
     strategy:
       fail-fast: false
@@ -27,9 +28,14 @@ jobs:
         include:
           - elixir: '1.18'
             otp: '27'
+            tailwind: '4.2.2'
           - elixir: '1.20'
             otp: '29'
             lint: true
+            tailwind: '4.2.2'
+          - elixir: '1.20'
+            otp: '29'
+            tailwind: '4.3.1'
 
     steps:
       - uses: actions/checkout@v4
@@ -44,9 +50,9 @@ jobs:
           path: |
             deps
             _build
-          key: deps-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}
+          key: deps-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-tw${{ matrix.tailwind }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            deps-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}
+            deps-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-tw${{ matrix.tailwind }}
 
       - run: mix deps.get
 
