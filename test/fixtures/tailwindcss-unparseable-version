@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI whose banner matches the version capture but isn't
+# valid semver, so the loosened regex must not feed Version.parse! a bad string.
+echo "tailwindcss vdev"

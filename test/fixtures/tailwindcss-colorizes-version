@@ -1,0 +1,9 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI that colorizes its version banner unless NO_COLOR
+# is set, slipping ANSI codes between "v" and the digits so a strict regex misses
+# the version and silently skips the minimum-version check.
+if [ -n "$NO_COLOR" ]; then
+  echo "tailwindcss v4.2.1"
+else
+  printf 'tailwindcss v\033[32m4.2.1\033[0m\n'
+fi

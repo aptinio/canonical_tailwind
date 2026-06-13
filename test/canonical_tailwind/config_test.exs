@@ -51,8 +51,23 @@ defmodule CanonicalTailwind.ConfigTest do
       end
     end
 
-    test "skips the version check when the version can't be parsed" do
+    test "catches a below-minimum version hidden by colorized output" do
+      binary = Path.expand("../fixtures/tailwindcss-colorizes-version", __DIR__)
+
+      assert_raise ArgumentError, ~r/requires tailwindcss >= 4\.2\.2/, fn ->
+        resolve!(binary: binary, cd: ".")
+      end
+    end
+
+    test "skips the version check when the version is absent" do
       binary = Path.expand("../fixtures/tailwindcss-no-version", __DIR__)
+      config = resolve!(binary: binary, cd: ".")
+
+      assert config.binary == binary
+    end
+
+    test "skips the version check when the reported version isn't valid semver" do
+      binary = Path.expand("../fixtures/tailwindcss-unparseable-version", __DIR__)
       config = resolve!(binary: binary, cd: ".")
 
       assert config.binary == binary

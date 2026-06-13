@@ -234,15 +234,26 @@ defmodule CanonicalTailwind.Config do
   end
 
   defp detect_cli_version(binary) do
-    case System.cmd(binary, ["--help"], stderr_to_stdout: true, env: []) do
+    # NO_COLOR keeps ANSI codes out of the banner (they otherwise slip between
+    # "v" and the digits and hide the version); the loose capture takes the whole
+    # version token so a pre-release is compared in full rather than truncated.
+    case System.cmd(binary, ["--help"], stderr_to_stdout: true, env: %{"NO_COLOR" => "1"}) do
       {output, 0} ->
-        case Regex.run(~r/tailwindcss v(\d+\.\d+\.\d+)/, output) do
-          [_, version] -> Version.parse!(version)
+        case Regex.run(~r/tailwindcss v([^\s]+)/, output, capture: :all_but_first) do
+          [version] -> parse_version(version)
           _ -> nil
         end
 
       _ ->
         nil
+    end
+  end
+
+  # A banner that matches but isn't valid semver skips the check rather than crashing.
+  defp parse_version(version) do
+    case Version.parse(version) do
+      {:ok, version} -> version
+      :error -> nil
     end
   end
 
