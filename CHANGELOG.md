@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.6 (2026-06-13)
+
+### Bug fixes
+  - [CanonicalTailwind.Canonicalizer] Detect tailwindcss CLI death immediately instead of waiting out the full `:timeout`, and name the `:timeout` option in the timeout error
+  - [CanonicalTailwind.Pool] Surface a dead or crashed CLI worker as a clear error instead of an opaque `GenServer.call` exit
+  - [CanonicalTailwind.Pool] Stop the config-drift check from raising on a `:tailwind` env change that resolves to the same configuration (e.g. an umbrella app carrying an immaterial key like `:version_check`)
+  - [CanonicalTailwind.Config] Track tailwind 0.5.0's version-suffixed binary name in the `_build/` LSP fallback, restoring on-save formatting under Expert / ElixirLS
+  - [CanonicalTailwind.Config] Detect the CLI version reliably by running with `NO_COLOR` and reading the full version token, so the minimum-version check is no longer silently skipped on colorized or pre-release banners
+  - [CanonicalTailwind.Config] Harden tailwind profile resolution: ignore non-keyword `:tailwind` globals when auto-detecting, and raise a clear error when a configured `:profile` names a non-profile key like `:version` instead of crashing with an opaque `Keyword.get/3` error
+
+### Enhancements
+  - [CanonicalTailwind.Config] Support tailwind 0.5.0's per-profile `:version`: resolve the binary for the selected profile's pinned version
+  - [CanonicalTailwind.Pool] Point the config-drift error at the per-app `mix format` workaround
+
 ## v0.1.5 (2026-05-10)
 
 ### Bug fixes
