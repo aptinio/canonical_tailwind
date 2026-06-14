@@ -4,138 +4,146 @@ defmodule CanonicalTailwind.Canonicalizer do
   alias CanonicalTailwind.Canonicalizer.Worker
   alias CanonicalTailwind.Config
 
-  @ready_key {__MODULE__, :ready}
-  @config_key {__MODULE__, :config}
-  @fingerprints_key {__MODULE__, :fingerprints}
-
   def canonicalize(class_string, opts) do
-    ensure_ready!(opts)
-    call(class_string, _retry? = true)
+    hash = route(opts)
+    call(hash, class_string, _retry? = true)
   end
 
-  defp ensure_ready!(opts) do
-    if :persistent_term.get(@ready_key, false) do
-      validate_config!(opts)
-    else
-      start!(opts)
-    end
-  end
-
-  defp start!(opts) do
-    # Serialize concurrent cold starts so only the first starts a worker; the
-    # rest block, then take the :ready branch.
-    :global.trans(cold_start_lock(), fn ->
-      if :persistent_term.get(@ready_key, false) do
-        validate_config!(opts)
-      else
-        do_start!(opts)
-      end
-    end)
-  end
-
-  defp cold_start_lock do
-    # `:global` allows shared locks for identical requester IDs, so use the
-    # caller pid as requester and a stable resource id.
-    {{__MODULE__, :cold_start}, self()}
-  end
-
-  defp validate_config!(opts) do
+  # The hot path: a raw {opts, env} term we've seen before maps straight to its
+  # resolved config's hash, so steady-state formatting never re-resolves (a
+  # shell-out) or re-acquires a cold-start lock. The alias is keyed by the
+  # EXACT raw term, not a hash of it: two distinct raw terms can never collide on
+  # this key, so trusting it here can't route a request to the wrong worker.
+  defp route(opts) do
     tailwind_env = Application.get_all_env(:tailwind)
-    fingerprint = config_fingerprint(opts, tailwind_env)
-    fingerprints = :persistent_term.get(@fingerprints_key)
+    alias_key = {Keyword.get(opts, :canonical_tailwind, []), tailwind_env}
 
-    if !MapSet.member?(fingerprints, fingerprint) do
-      reconcile_config!(fingerprints, fingerprint, opts, tailwind_env)
+    case :persistent_term.get({__MODULE__, :alias, alias_key}, :miss) do
+      :miss -> resolve_and_start!(opts, tailwind_env, alias_key)
+      hash -> hash
     end
   end
 
-  # A fingerprint miss means the raw opts/env differ, not necessarily the resolved
-  # config: immaterial :tailwind keys (e.g. :version_check) perturb the fingerprint
-  # but not the binary, args, or cd. Caching the also-valid fingerprint avoids
-  # re-resolving (a shell-out) per attribute.
-  defp reconcile_config!(fingerprints, fingerprint, opts, tailwind_env) do
-    stored_config = :persistent_term.get(@config_key)
-    new_config = Config.resolve!(opts, tailwind_env)
+  defp resolve_and_start!(opts, tailwind_env, alias_key) do
+    # Serialize concurrent first-callers for this raw term so only one resolves
+    # (a shell-out) and starts its worker; the rest take the cached alias.
+    lock = alias_lock(alias_key)
+    :global.trans(lock, fn -> resolve_alias!(opts, tailwind_env, alias_key) end)
+  end
 
-    if new_config == stored_config do
-      :persistent_term.put(@fingerprints_key, MapSet.put(fingerprints, fingerprint))
-    else
-      raise ArgumentError,
-            "different canonical_tailwind configuration detected after the CLI started.\n\n" <>
-              "Previous config:\n#{inspect(stored_config, pretty: true)}\n\n" <>
-              "New config:\n#{inspect(new_config, pretty: true)}\n\n" <>
-              "A single mix format run shares one tailwindcss CLI, so every app it formats must " <>
-              "use the same canonical_tailwind configuration. Run mix format in each app " <>
-              "separately so each gets its own CLI, or open an issue if you need differing " <>
-              "configurations in one run."
+  # `:global` grants a shared lock to identical requester IDs, so use the caller
+  # pid as requester and a per-resource id.
+  defp alias_lock(alias_key), do: {{__MODULE__, :resolve, alias_key}, self()}
+
+  defp resolve_alias!(opts, tailwind_env, alias_key) do
+    # Re-check inside the lock: a racing first-caller may have cached the alias
+    # while we waited, in which case we take it rather than resolve again.
+    case :persistent_term.get({__MODULE__, :alias, alias_key}, :miss) do
+      :miss ->
+        config = Config.resolve!(opts, tailwind_env)
+        hash = :erlang.phash2(config)
+        cold_start!(hash, config)
+        :persistent_term.put({__MODULE__, :alias, alias_key}, hash)
+        hash
+
+      hash ->
+        hash
     end
   end
 
-  defp do_start!(opts) do
-    # Stop any worker orphaned by a previous cold start that crashed before
-    # writing its persistent terms, so we start clean instead of adopting it.
-    clear_stale_worker!()
-
-    tailwind_env = Application.get_all_env(:tailwind)
-    fingerprint = config_fingerprint(opts, tailwind_env)
-    config = Config.resolve!(opts, tailwind_env)
-
-    start_worker!(config)
-
-    :persistent_term.put(@config_key, config)
-    :persistent_term.put(@fingerprints_key, MapSet.new([fingerprint]))
-    :persistent_term.put(@ready_key, true)
+  # Distinct raw terms can resolve to the same config, so guard that config's
+  # worker with its own lock rather than the per-term one.
+  defp cold_start!(hash, config) do
+    lock = cold_start_lock(hash)
+    :global.trans(lock, fn -> start_or_verify_worker!(hash, config) end)
   end
 
-  defp clear_stale_worker! do
-    if pid = GenServer.whereis(Worker), do: GenServer.stop(pid)
+  defp cold_start_lock(hash), do: {{__MODULE__, :cold_start, hash}, self()}
+
+  defp start_or_verify_worker!(hash, config) do
+    case :persistent_term.get({__MODULE__, :config, hash}, :miss) do
+      :miss ->
+        # Stop any worker orphaned by a previous cold start that crashed before
+        # writing the config term, so we start clean instead of adopting it.
+        clear_stale_worker!(hash)
+        # Write the config term before starting the worker so a registered worker
+        # always has one. A crash in between leaves at most a config without a
+        # worker, which `ensure_started!/1` lazily recovers.
+        :persistent_term.put({__MODULE__, :config, hash}, config)
+        start_worker!(hash, config)
+
+      ^config ->
+        :ok
+
+      stored_config ->
+        raise hash_collision_error(hash, stored_config, config)
+    end
   end
 
-  defp config_fingerprint(formatter_opts, tailwind_env) do
-    canonical_tailwind_opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
-    :erlang.phash2({canonical_tailwind_opts, tailwind_env})
+  defp clear_stale_worker!(hash) do
+    name = worker_name(hash)
+    if pid = GenServer.whereis(name), do: GenServer.stop(pid)
+  end
+
+  defp hash_collision_error(hash, stored_config, config) do
+    ArgumentError.exception(
+      "two distinct canonical_tailwind configurations collided on the same hash (#{hash}).\n\n" <>
+        "Existing config:\n#{inspect(stored_config, pretty: true)}\n\n" <>
+        "New config:\n#{inspect(config, pretty: true)}\n\n" <>
+        "This is extremely unlikely; please open an issue."
+    )
   end
 
   # A worker that vanished around call time, never started (`:noproc`) or
   # self-stopped on idle CLI death between the start and the call, is a transient
   # miss: retry once on a fresh worker. Any other crash, or a second vanish on the
   # retry, surfaces as a readable error rather than an opaque `GenServer.call` exit.
-  defp call(class_string, retry?) do
-    ensure_started!()
-    GenServer.call(Worker, {:canonicalize, class_string}, :infinity)
+  defp call(hash, class_string, retry?) do
+    ensure_started!(hash)
+    name = worker_name(hash)
+    GenServer.call(name, {:canonicalize, class_string}, :infinity)
   catch
     :exit, {:noproc, {GenServer, :call, _}} when retry? ->
-      call(class_string, false)
+      call(hash, class_string, false)
 
     :exit, {{:shutdown, {:cli_exited, _}}, {GenServer, :call, _}} when retry? ->
-      call(class_string, false)
+      call(hash, class_string, false)
 
     :exit, {reason, {GenServer, :call, _}} ->
       raise worker_error(reason)
   end
 
-  defp ensure_started! do
-    if !GenServer.whereis(Worker) do
-      config = :persistent_term.get(@config_key)
-      start_worker!(config)
+  defp ensure_started!(hash) do
+    name = worker_name(hash)
+
+    if !GenServer.whereis(name) do
+      config = :persistent_term.get({__MODULE__, :config, hash})
+      start_worker!(hash, config)
     end
   end
 
-  defp start_worker!(config) do
-    case start_worker(config) do
+  defp start_worker!(hash, config) do
+    case start_worker(hash, config) do
       :ok -> :ok
       {:error, %{__exception__: true} = error} -> raise error
       {:error, error} -> raise "failed to start canonicalizer: #{inspect(error)}"
     end
   end
 
-  defp start_worker(config) do
-    case GenServer.start(Worker, config, name: Worker) do
+  defp start_worker(hash, config) do
+    name = worker_name(hash)
+
+    case GenServer.start(Worker, config, name: name) do
       {:ok, _pid} -> :ok
       {:error, {:already_started, _pid}} -> :ok
       {:error, {error, _stacktrace}} -> {:error, error}
     end
   end
+
+  # One atom per distinct resolved config (a handful at most), so the bounded
+  # dynamic atoms are safe.
+  # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+  defp worker_name(hash), do: Module.concat(Worker, Integer.to_string(hash))
 
   defp worker_error({%{__exception__: true} = exception, _stacktrace}), do: exception
 

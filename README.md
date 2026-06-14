@@ -144,18 +144,13 @@ each one the same way as `class`:
 ]
 ```
 
-### Umbrella projects
+### Multiple builds in one run
 
-A single `mix format` run shares one `tailwindcss` CLI across every app
-it formats, so every app that uses CanonicalTailwind must resolve to the
-same configuration: identical `canonical_tailwind` options and the same
-tailwind profile (set `:profile` explicitly if the apps would otherwise
-auto-detect different ones). A configuration that drifts after the CLI
-starts raises a clear error rather than silently formatting against stale
-config.
-
-If your apps genuinely need different configurations, run `mix format` in
-each app separately so each gets its own CLI.
+A single `mix format` can span apps or directories that resolve to
+different configurations: an umbrella whose apps use different tailwind
+profiles, or a project using `subdirectories` with per-directory
+`.formatter.exs` files. Each distinct configuration gets its own warm
+`tailwindcss` CLI, so they coexist in one run without conflicting.
 
 ## Background
 

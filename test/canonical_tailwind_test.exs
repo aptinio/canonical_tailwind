@@ -9,7 +9,7 @@ defmodule CanonicalTailwindTest do
   end
 
   test "render_attribute/2" do
-    refute :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
+    assert running_workers() == []
 
     # bare attribute is passed through
     attr = {"class", nil, %{line: 1, column: 1}}
@@ -19,7 +19,7 @@ defmodule CanonicalTailwindTest do
     canonicalize("", "")
     canonicalize("   ", "   ")
 
-    refute :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
+    assert running_workers() == []
 
     # any attribute name is canonicalized
     assert {"foo", {:string, "flex p-0", _}, _} =
@@ -29,7 +29,7 @@ defmodule CanonicalTailwindTest do
     canonicalize("p-0 flex", "flex p-0")
     canonicalize("flex", "flex")
     canonicalize("  p-0   flex ", "flex p-0")
-    assert :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
+    assert running_workers() != []
 
     # string: multi-line
     canonicalize("p-0 flex\npy-3 p-1 px-3", "flex p-3")
