@@ -3,17 +3,16 @@ defmodule CanonicalTailwind.Config do
 
   @compile {:no_warn_undefined, Tailwind}
 
-  @default_pool_size 6
   @default_timeout 30_000
   @minimum_version Version.parse!("4.2.2")
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
 
-  @enforce_keys [:args, :binary, :cd, :pool_size, :timeout]
+  @enforce_keys [:args, :binary, :cd, :timeout]
   defstruct @enforce_keys
 
   def resolve!(formatter_opts, tailwind_env) do
     opts = Keyword.get(formatter_opts, :canonical_tailwind, [])
-    pool_size = validate_pool_size!(opts)
+    warn_deprecated_pool_size(opts)
     timeout = validate_timeout!(opts)
     {binary, profile_config} = resolve_binary!(opts, tailwind_env)
     cd = resolve_cd!(opts, profile_config)
@@ -36,20 +35,18 @@ defmodule CanonicalTailwind.Config do
       args: args,
       binary: binary,
       cd: cd,
-      pool_size: pool_size,
       timeout: timeout
     }
   end
 
-  defp validate_pool_size!(opts) do
-    size = Keyword.get(opts, :pool_size, @default_pool_size)
-
-    if !(is_integer(size) and size > 0) do
-      raise ArgumentError,
-            "expected :pool_size to be a positive integer, got: #{inspect(size)}."
+  defp warn_deprecated_pool_size(opts) do
+    if Keyword.has_key?(opts, :pool_size) do
+      IO.warn(
+        ":pool_size is deprecated and ignored. canonical_tailwind now runs a single " <>
+          "tailwindcss CLI per configuration.",
+        []
+      )
     end
-
-    size
   end
 
   defp validate_timeout!(opts) do

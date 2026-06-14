@@ -57,14 +57,13 @@ existing HEEx formatter plugin:
 ```
 
 Now `mix format` automatically canonicalizes Tailwind classes in
-`class` attributes.
+`class` attributes, processing only files changed since its last run.
 
 ## Editor usage
 
 If your editor formats via an LSP (like Expert or ElixirLS), the first
 format-on-save after starting the editor will take a few seconds while
-the `tailwindcss` CLI processes start up. Subsequent saves are near
-instant.
+the `tailwindcss` CLI starts up. Subsequent saves are near instant.
 
 ## Configuration
 
@@ -85,22 +84,6 @@ use:
   attribute_formatters: %{class: CanonicalTailwind},
   canonical_tailwind: [profile: :app],
   # ...
-]
-```
-
-### Pool size
-
-CanonicalTailwind runs a pool of `tailwindcss` CLI processes to
-parallelize `mix format`. The default is 6. Smaller projects may
-benefit from fewer (less startup cost), larger projects from more (up
-to your CPU core count).
-
-```elixir
-# .formatter.exs
-[
-  plugins: [Phoenix.LiveView.HTMLFormatter],
-  attribute_formatters: %{class: CanonicalTailwind},
-  canonical_tailwind: [pool_size: 3],
 ]
 ```
 
@@ -163,16 +146,16 @@ each one the same way as `class`:
 
 ### Umbrella projects
 
-A single `mix format` run shares one pool of CLI processes across every
-app it formats, so every app that uses CanonicalTailwind must resolve to
-the same configuration: identical `canonical_tailwind` options and the
-same tailwind profile (set `:profile` explicitly if the apps would
-otherwise auto-detect different ones). A configuration that drifts after
-the pool starts raises a clear error rather than silently formatting
-against stale config.
+A single `mix format` run shares one `tailwindcss` CLI across every app
+it formats, so every app that uses CanonicalTailwind must resolve to the
+same configuration: identical `canonical_tailwind` options and the same
+tailwind profile (set `:profile` explicitly if the apps would otherwise
+auto-detect different ones). A configuration that drifts after the CLI
+starts raises a clear error rather than silently formatting against stale
+config.
 
 If your apps genuinely need different configurations, run `mix format` in
-each app separately so each gets its own pool.
+each app separately so each gets its own CLI.
 
 ## Background
 

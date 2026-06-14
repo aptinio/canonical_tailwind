@@ -137,7 +137,7 @@ defmodule CanonicalTailwind do
     else
       class_string
       |> String.replace("\n", " ")
-      |> CanonicalTailwind.Pool.canonicalize(opts)
+      |> CanonicalTailwind.Canonicalizer.canonicalize(opts)
     end
   end
 end

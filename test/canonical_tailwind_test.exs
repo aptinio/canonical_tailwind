@@ -1,25 +1,25 @@
 defmodule CanonicalTailwindTest do
   use ExUnit.Case, async: false
 
-  import CanonicalTailwind.PoolHelpers
+  import CanonicalTailwind.CanonicalizerHelpers
 
   setup do
-    reset_pool!()
-    on_exit(&reset_pool!/0)
+    reset!()
+    on_exit(&reset!/0)
   end
 
   test "render_attribute/2" do
-    refute :persistent_term.get({CanonicalTailwind.Pool, :ready}, false)
+    refute :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
 
     # bare attribute is passed through
     attr = {"class", nil, %{line: 1, column: 1}}
     assert CanonicalTailwind.render_attribute(attr, []) == attr
 
-    # whitespace-only strings don't start the pool
+    # whitespace-only strings don't start the CLI
     canonicalize("", "")
     canonicalize("   ", "   ")
 
-    refute :persistent_term.get({CanonicalTailwind.Pool, :ready}, false)
+    refute :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
 
     # any attribute name is canonicalized
     assert {"foo", {:string, "flex p-0", _}, _} =
@@ -29,7 +29,7 @@ defmodule CanonicalTailwindTest do
     canonicalize("p-0 flex", "flex p-0")
     canonicalize("flex", "flex")
     canonicalize("  p-0   flex ", "flex p-0")
-    assert :persistent_term.get({CanonicalTailwind.Pool, :ready}, false)
+    assert :persistent_term.get({CanonicalTailwind.Canonicalizer, :ready}, false)
 
     # string: multi-line
     canonicalize("p-0 flex\npy-3 p-1 px-3", "flex p-3")

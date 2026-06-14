@@ -158,18 +158,14 @@ defmodule CanonicalTailwind.ConfigTest do
   end
 
   describe ":pool_size" do
-    test "must be a positive integer" do
-      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
-        resolve!(binary: @binary, pool_size: 0)
-      end
+    test "is deprecated and ignored, with a warning" do
+      warning =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          resolve!(binary: @binary, pool_size: 3)
+        end)
 
-      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
-        resolve!(binary: @binary, pool_size: -1)
-      end
-
-      assert_raise ArgumentError, ~r/expected :pool_size to be a positive integer/, fn ->
-        resolve!(binary: @binary, pool_size: 1.5)
-      end
+      assert warning =~ ":pool_size"
+      assert warning =~ "ignored"
     end
   end
 
