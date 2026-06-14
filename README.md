@@ -39,7 +39,7 @@ Add `canonical_tailwind` to your dependencies:
 # mix.exs
 defp deps do
   [
-    {:canonical_tailwind, "~> 0.1.0", only: [:dev, :test], runtime: false}
+    {:canonical_tailwind, "~> 0.2.0", only: [:dev, :test], runtime: false}
   ]
 end
 ```

@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.0 (2026-06-15)
+
+This release replaces the pool of `tailwindcss` CLI processes with a single warm CLI per resolved configuration.
+
+Formatting is serial within a file, so only the first full-tree `mix format` ever needed more than one CLI. Format-on-save, formatting a single file, and re-running `mix format` after edits (which skips unchanged files) each booted the whole pool but used only one CLI. Those cases now start a single CLI, so they return sooner and use less memory.
+
+### Enhancements
+  - [CanonicalTailwind.Canonicalizer] Run one warm tailwindcss CLI per resolved configuration, so a single `mix format` can format apps or directories that resolve to different configurations, such as an umbrella with per-app tailwind profiles or a project using `subdirectories` with per-directory `.formatter.exs` files. Each configuration gets its own CLI.
+
+### Potential breaking changes
+  - [CanonicalTailwind.Canonicalizer] Remove the config-drift error. When one `mix format` encounters differing configurations, each now gets its own CLI instead of raising.
+  - [CanonicalTailwind.Config] Deprecate `:pool_size`. A single warm CLI per configuration now replaces the worker pool; the option is ignored and emits a warning when set.
+
 ## v0.1.6 (2026-06-13)
 
 ### Bug fixes
