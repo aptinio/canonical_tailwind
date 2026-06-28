@@ -39,7 +39,7 @@ Add `canonical_tailwind` to your dependencies:
 # mix.exs
 defp deps do
   [
-    {:canonical_tailwind, "~> 0.2.0", only: [:dev, :test], runtime: false}
+    {:canonical_tailwind, "~> 0.3.0", only: [:dev, :test], runtime: false}
   ]
 end
 ```
@@ -101,7 +101,7 @@ available when they compile, including in `prod`. Drop
 `only: [:dev, :test]`, but keep `runtime: false`:
 
 ```elixir
-{:canonical_tailwind, "~> 0.2.0", runtime: false}
+{:canonical_tailwind, "~> 0.3.0", runtime: false}
 ```
 
 `runtime: false` keeps it a compile-only dependency: it is compiled so

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.0 (2026-06-28)
+
+Adds the `~TW` sigil for canonicalizing Tailwind classes in Elixir code, beyond HEEx `class` attributes.
+
+HEEx `class` attributes are canonicalized automatically, but Tailwind classes in `.ex` code can't be: a formatter can't safely tell a class string from any other string. The `~TW` sigil lets you mark a string as a Tailwind class list, so `mix format` canonicalizes it anywhere a string literal appears, leaving calls and variables untouched.
+
+### Enhancements
+  - [CanonicalTailwind] Add the `~TW` sigil as a `mix format` plugin feature (`plugins: [CanonicalTailwind]`), canonicalizing the sigil body through the same engine as the `class` attribute formatter
+  - [CanonicalTailwind.Sigil] Add the `sigil_TW/2` macro for keeping `~TW` in your code; `import CanonicalTailwind.Sigil` to use it
+
 ## v0.2.0 (2026-06-15)
 
 This release replaces the pool of `tailwindcss` CLI processes with a single warm CLI per resolved configuration.

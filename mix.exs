@@ -1,7 +1,7 @@
 defmodule CanonicalTailwind.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
   @source_url "https://github.com/aptinio/canonical_tailwind"
 
   def application do
@@ -57,7 +57,7 @@ defmodule CanonicalTailwind.MixProject do
 
   defp package do
     [
-      description: "Canonicalizes Tailwind CSS utility classes in HEEx templates",
+      description: "Canonicalizes Tailwind CSS utility classes in HEEx templates and Elixir code",
       licenses: ["MIT"],
       links: %{
         "GitHub" => @source_url,
