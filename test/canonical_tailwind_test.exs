@@ -140,6 +140,72 @@ defmodule CanonicalTailwindTest do
     )
   end
 
+  test "features/1" do
+    assert CanonicalTailwind.features([]) == [sigils: [:TW]]
+  end
+
+  test "format/2" do
+    assert running_workers() == []
+
+    # whitespace-only bodies don't start the CLI
+    canonicalize_sigil("", "")
+    canonicalize_sigil("   ", "   ")
+    assert running_workers() == []
+
+    # canonicalizes the sigil body
+    canonicalize_sigil("p-0 flex", "flex p-0")
+    canonicalize_sigil("  p-0   flex ", "flex p-0")
+    assert running_workers() != []
+
+    # collapses conflicting utilities
+    canonicalize_sigil("py-3 p-1 px-3", "p-3")
+
+    # a body with interpolation is left untouched (the macro rejects it at compile time)
+    canonicalize_sigil(~S|bg-#{color} flex|, ~S|bg-#{color} flex|)
+
+    # a non-heredoc delimiter gets no trailing newline
+    canonicalize_sigil("p-0 flex", "flex p-0", opening_delimiter: "[")
+
+    # heredoc body: newlines collapse, the trailing newline is preserved
+    canonicalize_sigil("p-0 flex\npy-3 p-1 px-3\n", "flex p-3\n", opening_delimiter: ~S/"""/)
+
+    # the single-quote heredoc delimiter is handled too
+    canonicalize_sigil("p-0 flex\n", "flex p-0\n", opening_delimiter: "'''")
+
+    # whitespace-only heredoc body is preserved untouched
+    canonicalize_sigil("\n", "\n", opening_delimiter: ~S/"""/)
+  end
+
+  test "format/2 round-trips idempotently through the Elixir formatter" do
+    sigils =
+      for {:sigils, names} <- CanonicalTailwind.features([]),
+          name <- names,
+          do: {name, &CanonicalTailwind.format/2}
+
+    format = fn source ->
+      source
+      |> Code.format_string!(sigils: sigils)
+      |> IO.iodata_to_binary()
+    end
+
+    cases = [
+      # string
+      {~S/x = ~TW"p-0   flex"/, ~S/x = ~TW"flex p-0"/},
+      # bracket-delimited list form
+      {~S/x = ~TW[p-0 flex]/, ~S/x = ~TW[flex p-0]/},
+      # as a list element among calls and conditionals (the list-with-calls slice)
+      {~S/x = [base(), ~TW"p-0 flex", active? && "m-1"]/, ~S/x = [base(), ~TW"flex p-0", active? && "m-1"]/},
+      # heredoc body re-wraps without breaking the closing delimiter
+      {~s(x = ~TW"""\np-0 flex\npy-3 p-1 px-3\n"""), ~s(x = ~TW"""\nflex p-3\n""")}
+    ]
+
+    for {source, expected} <- cases do
+      once = format.(source)
+      assert once == expected
+      assert format.(once) == once
+    end
+  end
+
   defp canonicalize(input, expected) do
     assert {"class", {:string, ^expected, _}, _} =
              CanonicalTailwind.render_attribute({"class", {:string, input, %{}}, %{}}, [])
@@ -148,5 +214,9 @@ defmodule CanonicalTailwindTest do
   defp canonicalize_expr(input, expected) do
     assert {"class", {:expr, ^expected, _}, _} =
              CanonicalTailwind.render_attribute({"class", {:expr, input, %{}}, %{}}, [])
+  end
+
+  defp canonicalize_sigil(input, expected, opts \\ []) do
+    assert CanonicalTailwind.format(input, [sigil: :TW] ++ opts) == expected
   end
 end

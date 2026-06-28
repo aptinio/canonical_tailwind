@@ -23,7 +23,7 @@ defmodule CanonicalTailwind.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      test_coverage: [summary: [threshold: 93]],
+      test_coverage: [ignore_modules: [CanonicalTailwind.Sigil], summary: [threshold: 93]],
       package: package(),
       docs: docs()
     ]

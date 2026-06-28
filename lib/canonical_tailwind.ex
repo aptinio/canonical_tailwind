@@ -1,6 +1,24 @@
 defmodule CanonicalTailwind do
   @moduledoc false
 
+  @behaviour Mix.Tasks.Format
+
+  @impl Mix.Tasks.Format
+  def features(_opts), do: [sigils: [:TW]]
+
+  @impl Mix.Tasks.Format
+  def format(contents, opts) do
+    # Leave a body with interpolation untouched: the sigil_TW macro rejects it
+    # at compile time, and we must not reorder tokens across a `#{...}`.
+    if String.contains?(contents, "\#{") do
+      contents
+    else
+      contents
+      |> canonicalize(opts)
+      |> preserve_heredoc_newline(opts[:opening_delimiter])
+    end
+  end
+
   def render_attribute({_name, nil, _meta} = attr, _opts), do: attr
 
   def render_attribute({name, {:string, value, meta}, attr_meta}, opts) do

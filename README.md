@@ -59,6 +59,73 @@ existing HEEx formatter plugin:
 Now `mix format` automatically canonicalizes Tailwind classes in
 `class` attributes, processing only files changed since its last run.
 
+## The `~TW` sigil
+
+The setup above canonicalizes `class` attributes in HEEx. Tailwind
+classes also live in `.ex` code: helper functions, module attributes,
+class-builder lists. A formatter can't safely canonicalize those on its
+own: it can't tell a class string from any other string, and reordering
+the words of a non-class string would corrupt it.
+
+The `~TW` sigil lets you *declare* that a string is a Tailwind class
+list, making it safe to canonicalize. You write:
+
+```elixir
+defp button_class, do: ~TW"px-4 py-2 inline-flex rounded-md bg-brand"
+```
+
+and `mix format` canonicalizes the body:
+
+```elixir
+defp button_class, do: ~TW"inline-flex rounded-md bg-brand px-4 py-2"
+```
+
+It works anywhere a string literal does, and leaves function calls,
+variables, and conditionals untouched.
+
+Register `CanonicalTailwind` in `plugins:`. This is independent of
+`attribute_formatters`. Use either, or both:
+
+```elixir
+# .formatter.exs
+[
+  plugins: [Phoenix.LiveView.HTMLFormatter, CanonicalTailwind],
+  # ...
+]
+```
+
+The [Setup](#setup) dependency is `only: [:dev, :test]`, which is
+enough for the `class` formatter. Keeping `~TW` in your code needs one
+change: those modules compile in every environment, so `~TW` must be
+available when they compile, including in `prod`. Drop
+`only: [:dev, :test]`, but keep `runtime: false`:
+
+```elixir
+{:canonical_tailwind, "~> 0.2.0", runtime: false}
+```
+
+`runtime: false` keeps it a compile-only dependency: it is compiled so
+your code can use `~TW`, but never shipped in your release.
+
+Then import the sigil in each module that uses `~TW`:
+
+```elixir
+import CanonicalTailwind.Sigil
+```
+
+`~TW"flex p-2"` compiles to `"flex p-2"`, and canonicalization happens
+only at `mix format` time. The body must be a static string; `~TW`
+rejects interpolation at compile time. For dynamic classes, use a HEEx
+`class={...}` attribute (canonicalized via `attribute_formatters`) or
+build the string with regular code.
+
+### When to reach for it
+
+`~TW` is opt-in per string by design: a clear win where class order is
+unmanaged, but where you've deliberately ordered a list for
+readability, canonical order may not be what you want. Mark the strings
+you want canonicalized, and leave the rest alone.
+
 ## Editor usage
 
 If your editor formats via an LSP (like Expert or ElixirLS), the first
