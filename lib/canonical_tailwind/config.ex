@@ -256,19 +256,15 @@ defmodule CanonicalTailwind.Config do
 
   defp resolve_input(opts, profile_config) do
     case Keyword.get(opts, :input) do
-      nil ->
-        args = profile_config[:args] || []
-
-        case Enum.find_value(args, &extract_input/1) do
-          nil -> nil
-          path -> "--input=" <> path
-        end
-
-      path ->
-        "--input=" <> path
+      nil -> find_profile_input(profile_config[:args] || [])
+      path -> "--input=" <> path
     end
   end
 
-  defp extract_input("--input=" <> path), do: path
-  defp extract_input(_), do: nil
+  # The CLI accepts both the joined (--input=path) and split (--input path) forms;
+  # the split form's value is a separate arg, so we scan pairs rather than each arg alone.
+  defp find_profile_input(["--input=" <> path | _]), do: "--input=" <> path
+  defp find_profile_input(["--input", path | _]), do: "--input=" <> path
+  defp find_profile_input([_ | rest]), do: find_profile_input(rest)
+  defp find_profile_input([]), do: nil
 end

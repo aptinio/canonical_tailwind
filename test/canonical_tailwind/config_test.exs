@@ -109,6 +109,17 @@ defmodule CanonicalTailwind.ConfigTest do
       assert config.cd == @project_root
     end
 
+    test "resolves the entrypoint from args in the split --input form" do
+      split_profile = [
+        args: ~w(--input test/fixtures/input.css --output /dev/null),
+        cd: File.cwd!()
+      ]
+
+      config = resolve_with_env([split_profile: split_profile], profile: :split_profile)
+
+      assert "--input=test/fixtures/input.css" in config.args
+    end
+
     test "when unset, auto-detects if only one is configured" do
       config = resolve_with_env(only_profile: @profile_config)
 
