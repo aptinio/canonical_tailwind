@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.1 (2026-07-04)
+
+### Bug fixes
+  - [CanonicalTailwind.Config] Resolve the CSS entrypoint from a tailwind profile's `args` when `--input` is written in the split form (`--input path`). The split form was silently ignored, so canonicalization ran without the project's `@theme` and plugins.
+
 ## v0.3.0 (2026-06-28)
 
 Adds the `~TW` sigil for canonicalizing Tailwind classes in Elixir code, beyond HEEx `class` attributes.
