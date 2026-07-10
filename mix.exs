@@ -37,7 +37,7 @@ defmodule CanonicalTailwind.MixProject do
       {:tailwind, "~> 0.3", optional: true},
       {:ex_doc, "~> 0.40.3", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:def_layout, "~> 0.1.0", only: [:dev, :test], runtime: false},
+      {:def_layout, "~> 0.1.1", only: [:dev, :test], runtime: false},
       {:quokka, "~> 2.13", only: [:dev, :test], runtime: false}
     ]
   end
