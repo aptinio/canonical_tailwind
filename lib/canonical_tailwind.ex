@@ -70,27 +70,21 @@ defmodule CanonicalTailwind do
     {sigil, meta, [{:<<>>, bin_meta, [canonicalized]}, mods]}
   end
 
-  defp canonicalize_ast({:<<>>, meta, segments}, opts) do
+  defp canonicalize_ast({sigil, meta, [{:<<>>, bin_meta, segments}, mods]}, opts) when sigil in [:sigil_w, :sigil_W] do
+    # A word-list sigil desugars to a list of independent classes: normalize each
+    # word in place, but never sort or collapse them against each other. Modifiers
+    # (~w()a, ~w()c) are canonicalized the same way; in a class attribute the words
+    # are class data regardless of the produced element type.
     segments =
-      Enum.map(segments, fn
-        seg when is_binary(seg) -> seg
-        interp -> canonicalize_ast(interp, opts)
-      end)
-
-    canonicalized =
       segments
-      |> Enum.with_index()
-      |> Enum.map(fn
-        {binary, i} when is_binary(binary) ->
-          prev_interp? = i > 0 and not is_binary(Enum.at(segments, i - 1))
-          next_interp? = i < length(segments) - 1 and not is_binary(Enum.at(segments, i + 1))
-          canonicalize_segment(binary, prev_interp?, next_interp?, opts)
+      |> canonicalize_segments(opts, :word_list)
+      |> preserve_heredoc_newline_segments(meta[:delimiter])
 
-        {interp, _i} ->
-          interp
-      end)
+    {sigil, meta, [{:<<>>, bin_meta, segments}, mods]}
+  end
 
-    {:<<>>, meta, canonicalized}
+  defp canonicalize_ast({:<<>>, meta, segments}, opts) do
+    {:<<>>, meta, canonicalize_segments(segments, opts, :class_string)}
   end
 
   defp canonicalize_ast({left, right}, opts) do
@@ -113,14 +107,52 @@ defmodule CanonicalTailwind do
 
   defp preserve_heredoc_newline(value, _delim), do: value
 
-  defp canonicalize_segment(binary, prev_interp?, next_interp?, opts) do
+  defp preserve_heredoc_newline_segments(segments, delim) when delim in ["\"\"\"", "'''"] do
+    # A heredoc body always ends in a newline before the closing delimiter, so its
+    # last segment is a binary; restore the newline the flattening replaced.
+    case List.last(segments) do
+      last when is_binary(last) ->
+        List.replace_at(segments, -1, String.trim_trailing(last) <> "\n")
+
+      _ ->
+        segments
+    end
+  end
+
+  defp preserve_heredoc_newline_segments(segments, _delim), do: segments
+
+  defp canonicalize_segments(segments, opts, mode) do
+    # In :word_list mode interpolations are opaque: a runtime value spliced into
+    # the list could be whitespace-split into independent classes, so rewriting a
+    # nested class string as a group would risk the same collapse as a bare list.
+    segments =
+      Enum.map(segments, fn
+        seg when is_binary(seg) -> seg
+        interp when mode == :word_list -> interp
+        interp -> canonicalize_ast(interp, opts)
+      end)
+
+    segments
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {binary, i} when is_binary(binary) ->
+        prev_interp? = i > 0 and not is_binary(Enum.at(segments, i - 1))
+        next_interp? = i < length(segments) - 1 and not is_binary(Enum.at(segments, i + 1))
+        canonicalize_segment(binary, prev_interp?, next_interp?, opts, mode)
+
+      {interp, _i} ->
+        interp
+    end)
+  end
+
+  defp canonicalize_segment(binary, prev_interp?, next_interp?, opts, mode) do
     words = String.split(binary)
 
     if words == [] do
       binary
     else
       {prefix, words, suffix} = split_boundary_words(binary, words, prev_interp?, next_interp?)
-      canonicalized = canonicalize(Enum.join(words, " "), opts)
+      canonicalized = canonicalize_words(words, mode, opts)
       leading = if String.match?(binary, ~r/^\s/), do: " ", else: ""
       trailing = if String.match?(binary, ~r/\s$/), do: " ", else: ""
 
@@ -148,6 +180,10 @@ defmodule CanonicalTailwind do
 
     {prefix, words, suffix}
   end
+
+  defp canonicalize_words(words, :class_string, opts), do: canonicalize(Enum.join(words, " "), opts)
+
+  defp canonicalize_words(words, :word_list, opts), do: Enum.map_join(words, " ", &canonicalize(&1, opts))
 
   defp canonicalize(class_string, opts) do
     if String.trim(class_string) == "" do
