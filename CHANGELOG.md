@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.2 (2026-07-18)
+
+### Bug fixes
+  - [CanonicalTailwind] Keep `~w`/`~W` sigils in `class` attributes as word lists: each class is normalized in place, never sorted or collapsed against the others. Previously `~w(w-100 w-140 w-60)` was collapsed to a single class, silently dropping runtime elements on format. ([#8](https://github.com/aptinio/canonical_tailwind/issues/8))
+
 ## v0.3.1 (2026-07-04)
 
 ### Bug fixes
