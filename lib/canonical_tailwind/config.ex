@@ -254,12 +254,7 @@ defmodule CanonicalTailwind.Config do
     end
   end
 
-  # `canonicalize` names the CSS entry point with --css. It has done so since it
-  # was introduced (tailwindlabs/tailwindcss#19783) and does not accept --input,
-  # which it drops silently -- leaving the design system as the stock
-  # `@import "tailwindcss"` and canonicalizing against the wrong theme. The
-  # profile's entry point still arrives spelled --input, because that is the flag
-  # the build command takes, so the discovered path is re-flagged here.
+  # Build profiles use --input for the CSS entrypoint; canonicalize takes --css.
   defp resolve_input(opts, profile_config) do
     case Keyword.get(opts, :input) do
       nil -> find_profile_input(profile_config[:args] || [])
