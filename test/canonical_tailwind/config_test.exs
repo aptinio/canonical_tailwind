@@ -14,7 +14,7 @@ defmodule CanonicalTailwind.ConfigTest do
 
       assert config.binary == @binary
       assert config.cd == @project_root
-      assert "--input=#{@input}" in config.args
+      assert "--css=#{@input}" in config.args
     end
 
     test "resolves with :cd" do
@@ -29,7 +29,7 @@ defmodule CanonicalTailwind.ConfigTest do
 
       assert config.binary == @binary
       assert config.cd == @project_root
-      assert "--input=#{@input}" in config.args
+      assert "--css=#{@input}" in config.args
     end
 
     test "resolves without :cd or :input" do
@@ -94,10 +94,10 @@ defmodule CanonicalTailwind.ConfigTest do
   ]
 
   describe ":input" do
-    test "when not specified, no --input is passed to the binary" do
+    test "when not specified, no --css is passed to the binary" do
       config = resolve_with_env([bare_profile: [args: []]], profile: :bare_profile)
 
-      refute Enum.any?(config.args, &String.starts_with?(&1, "--input="))
+      refute Enum.any?(config.args, &String.starts_with?(&1, "--css="))
     end
   end
 
@@ -105,7 +105,7 @@ defmodule CanonicalTailwind.ConfigTest do
     test "provides input and cd" do
       config = resolve_with_env([test_profile: @profile_config], profile: :test_profile)
 
-      assert "--input=test/fixtures/input.css" in config.args
+      assert "--css=test/fixtures/input.css" in config.args
       assert config.cd == @project_root
     end
 
@@ -117,7 +117,7 @@ defmodule CanonicalTailwind.ConfigTest do
 
       config = resolve_with_env([split_profile: split_profile], profile: :split_profile)
 
-      assert "--input=test/fixtures/input.css" in config.args
+      assert "--css=test/fixtures/input.css" in config.args
     end
 
     test "when unset, auto-detects if only one is configured" do

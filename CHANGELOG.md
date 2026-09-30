@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+  - [CanonicalTailwind.Config] Name the CSS entrypoint to `tailwindcss canonicalize` with `--css`, the flag it actually takes. It was passed as `--input`, which `canonicalize` has never accepted and drops silently, so canonicalization ran against the stock `@import "tailwindcss"` design system rather than the project's -- the same symptom v0.3.1 fixed for the split form, still reachable through every other path.
+
 ## v0.3.2 (2026-07-18)
 
 ### Bug fixes
