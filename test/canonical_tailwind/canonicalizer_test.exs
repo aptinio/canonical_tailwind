@@ -76,9 +76,25 @@ defmodule CanonicalTailwind.CanonicalizerTest do
     assert Enum.all?(workers, &Process.alive?/1)
 
     # Each profile resolved to its own config and warm CLI, not a shared one.
-    inputs = Enum.map(stored_configs(), &Enum.find(&1.args, fn arg -> arg =~ "--input=" end))
-    assert "--input=test/fixtures/input.css" in inputs
-    assert "--input=test/fixtures/other.css" in inputs
+    inputs = Enum.map(stored_configs(), &Enum.find(&1.args, fn arg -> arg =~ "--css=" end))
+    assert "--css=test/fixtures/input.css" in inputs
+    assert "--css=test/fixtures/other.css" in inputs
+  end
+
+  test "canonicalizes against the profile's own design system, not the stock one" do
+    Application.put_env(:tailwind, :themed,
+      args: ~w(--input=test/fixtures/themed.css),
+      cd: File.cwd!()
+    )
+
+    # themed.css drops the `sm` breakpoint and redefines `sm` as a max-width
+    # variant, so `min-[40rem]:` is not a spelling of it. Under the stock design
+    # system the CLI rewrites this to "p-4 sm:flex" -- which is what comes back
+    # if the entry point never reaches the CLI.
+    assert Canonicalizer.canonicalize("min-[40rem]:flex p-4",
+             canonical_tailwind: [profile: :themed]
+           ) ==
+             "p-4 min-[40rem]:flex"
   end
 
   test "reuses one CLI for an env change that resolves to the same config" do

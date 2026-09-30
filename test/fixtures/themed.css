@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@source "../";
+
+@theme {
+  --breakpoint-sm: initial;
+}
+
+@custom-variant sm (@media (width <= 40rem));
