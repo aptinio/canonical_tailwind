@@ -1,7 +1,7 @@
 defmodule CanonicalTailwind.MixProject do
   use Mix.Project
 
-  @version "0.3.2"
+  @version "0.3.3"
   @source_url "https://github.com/aptinio/canonical_tailwind"
 
   def application do

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.3 (2026-09-30)
 
 ### Bug fixes
   - [CanonicalTailwind.Config] Pass CSS entrypoints to `tailwindcss canonicalize` as `--css` so canonicalization uses the project's theme and plugins. ([#10](https://github.com/aptinio/canonical_tailwind/pull/10))
