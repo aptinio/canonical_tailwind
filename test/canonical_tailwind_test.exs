@@ -34,8 +34,17 @@ defmodule CanonicalTailwindTest do
     # string: multi-line
     canonicalize("p-0 flex\npy-3 p-1 px-3", "flex p-3")
 
+    # HTML entities stay in their source form while classes are sorted
+    canonicalize("sm:p-0 foo-&#34;bar&#34; p-0", "foo-&#34;bar&#34; p-0 sm:p-0")
+
     # expr: string literal
     canonicalize_expr(~S/"p-0 flex"/, ~S/"flex p-0"/)
+
+    # expr: escaped quotes in arbitrary variants survive sorting
+    canonicalize_expr(
+      ~S|"text-sm [&_svg:not([class*=\"size-\"])]:size-4 flex p-2"|,
+      ~S|"flex p-2 text-sm [&_svg:not([class*=\"size-\"])]:size-4"|
+    )
 
     # expr: empty string
     canonicalize_expr(~S/""/, ~S/""/)

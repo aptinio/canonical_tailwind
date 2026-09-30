@@ -35,7 +35,7 @@ defmodule CanonicalTailwind.MixProject do
   defp deps do
     [
       {:tailwind, "~> 0.3", optional: true},
-      {:ex_doc, "~> 0.40.3", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40.4", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:def_layout, "~> 0.1.1", only: [:dev, :test], runtime: false},
       {:quokka, "~> 2.13", only: [:dev, :test], runtime: false}
@@ -73,6 +73,7 @@ defmodule CanonicalTailwind.MixProject do
       source_ref: "v#{@version}",
       source_url: @source_url,
       extras: ["README.md", "CHANGELOG.md"],
+      skip_code_autolink_to: ["CanonicalTailwind"],
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
