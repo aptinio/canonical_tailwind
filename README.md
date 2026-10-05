@@ -181,6 +181,10 @@ determining canonical forms.
 - **`:cd`** — working directory for the CLI process (defaults to the
   project root)
 - **`:input`** — CSS entrypoint, relative to `:cd`
+- **`:env`** — environment for the CLI process, as a map or keyword
+  list; a list value is joined with the OS path separator (e.g.
+  `%{"NODE_PATH" => ["deps", "_build/dev"]}`). `NODE_PATH` requires
+  tailwindcss 4.2.3 or newer
 
 ```elixir
 # .formatter.exs

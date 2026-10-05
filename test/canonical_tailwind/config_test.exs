@@ -93,6 +93,39 @@ defmodule CanonicalTailwind.ConfigTest do
     cd: File.cwd!()
   ]
 
+  describe ":env" do
+    test "is empty when neither the profile nor the formatter opts set it" do
+      config = resolve_with_env([test_profile: @profile_config], profile: :test_profile)
+
+      assert config.env == %{}
+    end
+
+    test "is taken from the profile" do
+      assert env_from_profile(%{"NODE_PATH" => "deps"}) == %{"NODE_PATH" => "deps"}
+    end
+
+    test "accepts a keyword list as well as a map" do
+      assert env_from_profile([{"NODE_PATH", "deps"}]) == %{"NODE_PATH" => "deps"}
+    end
+
+    test "joins a list value with the path separator" do
+      assert env_from_profile(%{"NODE_PATH" => ["deps", "_build/test"]}) ==
+               %{"NODE_PATH" => "deps:_build/test"}
+    end
+
+    test "set in the formatter opts, overrides the profile's" do
+      profile = Keyword.put(@profile_config, :env, %{"NODE_PATH" => "deps"})
+
+      config =
+        resolve_with_env([env_profile: profile],
+          profile: :env_profile,
+          env: %{"NODE_PATH" => "elsewhere"}
+        )
+
+      assert config.env == %{"NODE_PATH" => "elsewhere"}
+    end
+  end
+
   describe ":input" do
     test "when not specified, no --css is passed to the binary" do
       config = resolve_with_env([bare_profile: [args: []]], profile: :bare_profile)
@@ -202,5 +235,11 @@ defmodule CanonicalTailwind.ConfigTest do
 
   defp resolve_with_env(tailwind_env, opts \\ []) do
     Config.resolve!([canonical_tailwind: opts], tailwind_env)
+  end
+
+  defp env_from_profile(env) do
+    profile = Keyword.put(@profile_config, :env, env)
+
+    resolve_with_env([env_profile: profile], profile: :env_profile).env
   end
 end

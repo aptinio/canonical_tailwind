@@ -16,10 +16,18 @@ defmodule CanonicalTailwind.Canonicalizer.Worker do
       :use_stdio,
       {:line, 65_536},
       {:cd, to_charlist(config.cd)},
+      {:env, env_charlists(config.env)},
       args: config.args
     ]
 
     Port.open({:spawn_executable, config.binary}, port_opts)
+  end
+
+  defp env_charlists(env) do
+    Enum.map(env, fn
+      {name, nil} -> {to_charlist(name), false}
+      {name, value} -> {to_charlist(name), to_charlist(value)}
+    end)
   end
 
   @impl GenServer

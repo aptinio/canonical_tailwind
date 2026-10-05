@@ -97,6 +97,22 @@ defmodule CanonicalTailwind.CanonicalizerTest do
              "p-4 min-[40rem]:flex"
   end
 
+  test "runs the CLI with the configured env" do
+    binary = Path.expand("../fixtures/tailwindcss-echoes-node-path", __DIR__)
+
+    opts = [
+      canonical_tailwind: [
+        binary: binary,
+        cd: File.cwd!(),
+        env: %{"NODE_PATH" => ["deps", "_build/dev"]}
+      ]
+    ]
+
+    # The fixture CLI ignores the classes and answers with its own NODE_PATH, so
+    # the response is the joined value as the spawned process received it.
+    assert Canonicalizer.canonicalize("p-0 flex", opts) == "deps:_build/dev"
+  end
+
   test "reuses one CLI for an env change that resolves to the same config" do
     assert Canonicalizer.canonicalize("p-0 flex", []) == "flex p-0"
     [worker] = running_workers()

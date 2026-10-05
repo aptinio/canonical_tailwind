@@ -48,6 +48,7 @@ defmodule CanonicalTailwind.Canonicalizer.WorkerTest do
       args: ["canonicalize", "--stream"],
       binary: Path.expand("../../fixtures/#{fixture}", __DIR__),
       cd: File.cwd!(),
+      env: %{},
       timeout: Keyword.fetch!(opts, :timeout)
     }
 

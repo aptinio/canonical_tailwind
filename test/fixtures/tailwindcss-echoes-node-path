@@ -1,0 +1,9 @@
+#!/bin/bash
+# Simulates a tailwindcss CLI that replies with the NODE_PATH it was given.
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+read -r _line
+echo "$NODE_PATH"
+exit 0
