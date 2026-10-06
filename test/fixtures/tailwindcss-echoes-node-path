@@ -4,6 +4,7 @@ case "$1" in
   --help) echo "tailwindcss help (no version)"; exit 0 ;;
 esac
 
-read -r _line
-echo "$NODE_PATH"
+while read -r _line; do
+  echo "${NODE_PATH-unset}"
+done
 exit 0
