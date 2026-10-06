@@ -7,7 +7,7 @@ defmodule CanonicalTailwind.Config do
   @minimum_version Version.parse!("4.2.2")
   @non_profile_keys [:version, :version_check, :path, :target, :cacerts_path]
 
-  @enforce_keys [:args, :binary, :cd, :timeout]
+  @enforce_keys [:args, :binary, :cd, :env, :timeout]
   defstruct @enforce_keys
 
   def resolve!(formatter_opts, tailwind_env) do
@@ -17,6 +17,7 @@ defmodule CanonicalTailwind.Config do
     {binary, profile_config} = resolve_binary!(opts, tailwind_env)
     cd = resolve_cd!(opts, profile_config)
     validate_cd!(cd)
+    env = resolve_env(opts, profile_config)
     binary = Path.expand(binary, cd)
     validate_binary!(binary)
     ensure_minimum_version!(binary, opts)
@@ -35,6 +36,7 @@ defmodule CanonicalTailwind.Config do
       args: args,
       binary: binary,
       cd: cd,
+      env: env,
       timeout: timeout
     }
   end
@@ -206,6 +208,26 @@ defmodule CanonicalTailwind.Config do
   defp validate_cd!(cd) do
     if !File.dir?(cd) do
       raise ArgumentError, ":cd path #{inspect(cd)} is not a directory."
+    end
+  end
+
+  defp resolve_env(opts, profile_config) do
+    env =
+      case Keyword.get(opts, :env) do
+        nil -> profile_config[:env] || %{}
+        env -> env
+      end
+
+    Map.new(env, fn
+      {name, value} when is_list(value) -> {name, Enum.join(value, path_sep())}
+      other -> other
+    end)
+  end
+
+  defp path_sep do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
     end
   end
 

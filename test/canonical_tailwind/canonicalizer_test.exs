@@ -97,6 +97,48 @@ defmodule CanonicalTailwind.CanonicalizerTest do
              "p-4 min-[40rem]:flex"
   end
 
+  test "runs the CLI with the configured env" do
+    binary = Path.expand("../fixtures/tailwindcss-echoes-node-path", __DIR__)
+
+    opts = [
+      canonical_tailwind: [
+        binary: binary,
+        cd: File.cwd!(),
+        env: %{"NODE_PATH" => ["deps", "_build/dev"]}
+      ]
+    ]
+
+    # The fixture CLI ignores the classes and answers with its own NODE_PATH, so
+    # the response is the joined value as the spawned process received it.
+    assert Canonicalizer.canonicalize("p-0 flex", opts) == "deps:_build/dev"
+  end
+
+  test "unsets an inherited env variable in the CLI without changing the parent" do
+    node_path = System.get_env("NODE_PATH")
+
+    on_exit(fn ->
+      if node_path do
+        System.put_env("NODE_PATH", node_path)
+      else
+        System.delete_env("NODE_PATH")
+      end
+    end)
+
+    System.put_env("NODE_PATH", "inherited-node-path")
+    binary = Path.expand("../fixtures/tailwindcss-echoes-node-path", __DIR__)
+
+    opts = [
+      canonical_tailwind: [
+        binary: binary,
+        cd: File.cwd!(),
+        env: %{"NODE_PATH" => nil}
+      ]
+    ]
+
+    assert Canonicalizer.canonicalize("p-0 flex", opts) == "unset"
+    assert System.get_env("NODE_PATH") == "inherited-node-path"
+  end
+
   test "reuses one CLI for an env change that resolves to the same config" do
     assert Canonicalizer.canonicalize("p-0 flex", []) == "flex p-0"
     [worker] = running_workers()
