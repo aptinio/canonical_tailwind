@@ -1,14 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.3.4 (2026-10-06)
 
 ### Bug fixes
-
-- [CanonicalTailwind.Config] Pass a tailwind profile's `:env` to `tailwindcss canonicalize`. A CSS entrypoint can depend on environment that only the profile carries, such as `NODE_PATH`. ([#11](https://github.com/aptinio/canonical_tailwind/issues/11))
+  - [CanonicalTailwind.Config] Pass the Tailwind profile's `:env` to the CLI so colocated CSS imports resolve through `NODE_PATH`. ([#11](https://github.com/aptinio/canonical_tailwind/issues/11))
 
 ### Enhancements
-
-- [CanonicalTailwind.Config] Add `:env` for projects that configure `:binary` rather than a tailwind profile.
+  - [CanonicalTailwind.Config] Add explicit `:env` overrides, including for custom binaries. ([#12](https://github.com/aptinio/canonical_tailwind/pull/12))
 
 ## v0.3.3 (2026-09-30)
 
