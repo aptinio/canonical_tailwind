@@ -1,9 +1,11 @@
 #!/bin/bash
-# Simulates a tailwindcss CLI that replies to one request, then exits.
+# Echo the handshake, then reply to one request and exit.
 case "$1" in
   --help) echo "tailwindcss help (no version)"; exit 0 ;;
 esac
 
+read -r line
+printf '%s\n' "$line"
 read -r _line
 echo "flex p-0"
 exit 0

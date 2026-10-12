@@ -4,6 +4,29 @@ defmodule CanonicalTailwind.Canonicalizer.WorkerTest do
   alias CanonicalTailwind.Canonicalizer.Worker
   alias CanonicalTailwind.Config
 
+  test "discards startup output before returning the first and later responses" do
+    pid = start_worker!("tailwindcss-startup-output", timeout: 30_000)
+
+    assert GenServer.call(pid, {:canonicalize, "first-request"}) == "first-request"
+    assert GenServer.call(pid, {:canonicalize, "second-request"}) == "second-request"
+    assert GenServer.call(pid, {:canonicalize, ""}) == ""
+  end
+
+  test "keeps concurrent requests aligned after startup output" do
+    pid = start_worker!("tailwindcss-startup-output", timeout: 30_000)
+
+    tasks =
+      for index <- 1..20 do
+        input = "request-#{index}"
+        Task.async(fn -> {input, GenServer.call(pid, {:canonicalize, input})} end)
+      end
+
+    for task <- tasks do
+      assert {input, output} = Task.await(task)
+      assert output == input
+    end
+  end
+
   test "returns the response when the CLI replies and then exits" do
     pid = start_worker!("tailwindcss-replies-then-exits", timeout: 30_000)
     ref = Process.monitor(pid)
@@ -23,6 +46,16 @@ defmodule CanonicalTailwind.Canonicalizer.WorkerTest do
 
     assert message =~ "did not respond within 50ms"
     assert message =~ "canonical_tailwind: [timeout:"
+  end
+
+  @tag capture_log: true
+  test "times out startup even when the CLI keeps printing output" do
+    pid = start_worker!("tailwindcss-startup-never-ready", timeout: 50)
+
+    assert {{%RuntimeError{message: message}, _stacktrace}, {GenServer, :call, _}} =
+             catch_exit(GenServer.call(pid, {:canonicalize, "p-0 flex"}, 1_000))
+
+    assert message =~ "did not respond within 50ms"
   end
 
   @tag capture_log: true
