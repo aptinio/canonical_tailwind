@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.5 (2026-10-12)
+
+### Bug fixes
+  - [CanonicalTailwind.Canonicalizer.Worker] Prevent plugin startup logs from corrupting class lists or shifting classes between elements. ([#13](https://github.com/aptinio/canonical_tailwind/issues/13))
+
 ## v0.3.4 (2026-10-06)
 
 ### Bug fixes
