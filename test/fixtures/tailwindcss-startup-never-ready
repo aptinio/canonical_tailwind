@@ -1,0 +1,11 @@
+#!/bin/bash
+# Simulate a plugin that keeps logging but never finishes loading.
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+read -r _line
+for _ in {1..200}; do
+  printf 'plugin still loading\n' || exit 0
+  sleep 0.01
+done

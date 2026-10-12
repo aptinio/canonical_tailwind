@@ -97,6 +97,30 @@ defmodule CanonicalTailwind.CanonicalizerTest do
              "p-4 min-[40rem]:flex"
   end
 
+  test "keeps results aligned when a CSS plugin logs during startup" do
+    opts = [canonical_tailwind: [input: "test/fixtures/logging.css"]]
+
+    inputs = [
+      {"flex   p-4 px-2 py-2", "flex p-2"},
+      {"w-4 h-4", "size-4"},
+      {"p-0 flex", "flex p-0"}
+    ]
+
+    for _round <- 1..2 do
+      tasks =
+        Enum.map(inputs, fn {input, expected} ->
+          Task.async(fn -> {Canonicalizer.canonicalize(input, opts), expected} end)
+        end)
+
+      for task <- tasks do
+        assert {result, expected} = Task.await(task, :infinity)
+        assert result == expected
+      end
+    end
+
+    assert [_worker] = running_workers()
+  end
+
   test "runs the CLI with the configured env" do
     binary = Path.expand("../fixtures/tailwindcss-echoes-node-path", __DIR__)
 

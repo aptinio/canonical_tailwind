@@ -1,9 +1,11 @@
 #!/bin/bash
-# Simulates a tailwindcss CLI that replies with the NODE_PATH it was given.
+# Echo the handshake, then reply with the NODE_PATH the CLI was given.
 case "$1" in
   --help) echo "tailwindcss help (no version)"; exit 0 ;;
 esac
 
+read -r line
+printf '%s\n' "$line"
 while read -r _line; do
   echo "${NODE_PATH-unset}"
 done

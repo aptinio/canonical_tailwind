@@ -1,0 +1,13 @@
+#!/bin/bash
+# Emit startup output only after input arrives, then echo every request unchanged.
+case "$1" in
+  --help) echo "tailwindcss help (no version)"; exit 0 ;;
+esac
+
+IFS= read -r line || exit 0
+printf 'plugin startup banner\n\n'
+printf '%070000d\n' 0
+printf '%s\n' "$line"
+while IFS= read -r line; do
+  printf '%s\n' "$line"
+done
